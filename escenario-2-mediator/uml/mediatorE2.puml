@@ -1,52 +1,45 @@
 @startuml
-title POR COMPLETAR - Escenario 2: Mediator
-
+title El Fogon Andino - coordinacion de cocina (propuesta original)
 skinparam classAttributeIconSize 0
-skinparam linetype ortho
-
-' POR COMPLETAR: renombrar cada clase con el dominio del enunciado y agregar atributos y operaciones.
-
-interface Mediador <<Mediator>> {
-    ' POR COMPLETAR: operaciones, p. ej. + registrar(colega : Colega) : void
+interface MediadorCocina <<Mediator>> {
+  + notificar(emisor : ComponenteCocina, evento : EventoCocina) : void
 }
-
-class MediadorConcreto <<ConcreteMediator>> {
-    ' POR COMPLETAR: - colegas : List<Colega>
+class JefeDeCocina <<ConcreteMediator>> {
+  - mesero : Mesero
+  - caliente : EstacionCaliente
+  - fria : EstacionFria
+  - caja : Caja
+  + notificar(emisor : ComponenteCocina, evento : EventoCocina) : void
 }
-
-abstract class Colega <<Colleague>> {
-    ' POR COMPLETAR: - mediador : Mediador
+abstract class ComponenteCocina <<Colleague>> {
+  # mediador : MediadorCocina
+  + informar(evento : EventoCocina) : void
 }
-
-class ColegaConcretoA <<ConcreteColleague>> {
-    ' POR COMPLETAR
+class Mesero <<ConcreteColleague>>
+class EstacionCaliente <<ConcreteColleague>>
+class EstacionFria <<ConcreteColleague>>
+class Caja <<ConcreteColleague>>
+class EventoCocina {
+  + mesaId : String
+  + tipo : String
+  + plato : String
 }
-
-class ColegaConcretoB <<ConcreteColleague>> {
-    ' POR COMPLETAR
-}
-
-class Main <<Client>> {
-    + {static} main(args : String[]) : void
-}
-
-Mediador <|.. MediadorConcreto
-Colega <|-- ColegaConcretoA
-Colega <|-- ColegaConcretoB
-' atributo Colega.mediador
-Colega "*" --> "1" Mediador : mediador
-' atributo MediadorConcreto.colegas
-MediadorConcreto "1" o--> "0..*" Colega : colegas
-Main ..> MediadorConcreto : crea
-Main ..> ColegaConcretoA : crea
-Main ..> ColegaConcretoB : crea
-
-legend right
-  <<Mediator>> define cómo se comunican los participantes
-  <<ConcreteMediator>> coordina la comunicación y conoce a los participantes
-  <<Colleague>> conoce solo al mediador, no a los demás
-  <<ConcreteColleague>> participante concreto
-  <<Client>> arma el mediador y registra a los colegas
-endlegend
-
+class Main <<Client>>
+MediadorCocina <|.. JefeDeCocina
+ComponenteCocina <|-- Mesero
+ComponenteCocina <|-- EstacionCaliente
+ComponenteCocina <|-- EstacionFria
+ComponenteCocina <|-- Caja
+ComponenteCocina "*" --> "1" MediadorCocina : mediador
+JefeDeCocina --> Mesero
+JefeDeCocina --> EstacionCaliente
+JefeDeCocina --> EstacionFria
+JefeDeCocina --> Caja
+ComponenteCocina ..> EventoCocina : emite
+Main ..> JefeDeCocina : configura
+note right of JefeDeCocina
+  Primera propuesta: referencias concretas fijas.
+  El estado de la mesa y los faltantes no
+  tienen contrato explicito.
+end note
 @enduml

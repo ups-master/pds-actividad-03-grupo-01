@@ -1,30 +1,25 @@
 @startuml
-title POR COMPLETAR - Escenario 2: Mediator (secuencia)
-
-skinparam sequenceMessageAlign left
-
-participant "a : ColegaConcretoA" as a <<ConcreteColleague>>
-participant "m : MediadorConcreto" as m <<ConcreteMediator>>
-participant "b : ColegaConcretoB" as b <<ConcreteColleague>>
-
-' POR COMPLETAR: reemplazar los mensajes por los del escenario.
-a -> m : POR COMPLETAR(evento, a)
-activate m
-m -> b : POR COMPLETAR(evento, a)
-activate b
-b -> m : POR COMPLETAR(respuesta, b)
-deactivate b
-m -> a : POR COMPLETAR(respuesta, b)
-deactivate m
-
-note over a, b
-  Ningún colega tiene referencias a otro:
-  todo pasa por el mediador.
-end note
-
-legend right
-  <<ConcreteMediator>> decide a quién llega cada evento
-  <<ConcreteColleague>> solo habla con el mediador
-endlegend
-
+title El Fogon Andino - faltante de insumo y mesa lista
+participant "caliente : EstacionCaliente" as caliente
+participant "jefe : JefeDeCocina" as jefe
+participant "estado : EstadoMesa" as estado
+participant "mesero : Mesero" as mesero
+participant "caja : Caja" as caja
+participant "fria : EstacionFria" as fria
+note over jefe : La estacion fria ya informo que sus platos estan listos.
+caliente -> jefe : notificar(INSUMO_AGOTADO, fritada, mesa 7)
+activate jefe
+jefe -> estado : retirar(fritada)
+jefe -> mesero : recibir(INSUMO_AGOTADO, fritada)
+mesero --> jefe : cliente informado
+jefe -> caja : recibir(RETIRAR_PLATO, fritada)
+caja --> jefe : cuenta actualizada
+jefe -> estado : estaLista()
+estado --> jefe : true
+jefe -> mesero : recibir(MESA_LISTA, mesa 7)
+mesero -> jefe : notificar(PLATOS_SERVIDOS, mesa 7)
+jefe -> estado : marcarServidos()
+jefe --> mesero : confirmacion
+deactivate jefe
+note over fria : No espera la fritada retirada; conserva sus platos listos.
 @enduml
