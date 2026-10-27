@@ -191,21 +191,22 @@ reparte los pedidos a las estaciones y decide cuándo una mesa está lista para 
 
 | Rol del patrón | Elemento del escenario |
 |---|---|
+| Componentes | `Mesero`, `EstacionCaliente`, `EstacionFria` y `Caja`: cada uno guarda su referencia `mediador` y le notifica sus eventos |
 | Mediador | `MediadorCocina`: interfaz con la operación `notificar(emisor, evento)` |
-| Mediador concreto | `JefeDeCocina`: conoce a todos los colegas, lleva el estado de cada mesa y aplica las reglas de coordinación |
-| Colega | `Colega`: clase abstracta que guarda la referencia a su `mediador` |
-| Colegas concretos | `Mesero`, `EstacionCaliente`, `EstacionFria` y `Caja` |
+| Mediador concreto | `JefeDeCocina`: conoce a todos los componentes, lleva el estado de cada mesa y aplica las reglas de coordinación |
 
-**Cómo resuelve los problemas identificados:** cada colega conoce solo al mediador; la regla "servir cuando
+**Cómo resuelve los problemas identificados:** cada componente conoce solo al mediador; la regla "servir cuando
 todas las estaciones terminaron" vive una sola vez en `JefeDeCocina`; un faltante es un único aviso al
-mediador, que decide a quién afecta; agregar la parrilla o el *delivery* es registrar un colega nuevo sin
-tocar a los demás, y cada colega puede probarse con un mediador simulado.
+mediador, que decide a quién afecta; agregar la parrilla o el *delivery* es crear el componente nuevo y
+modificar solo el mediador concreto, sin tocar a los demás componentes, y cada componente puede probarse
+con un mediador simulado.
 
 **Análisis crítico.** Se descartó *Observer* porque dejaría la regla de coordinación repartida entre los
-suscriptores, y *Facade* porque su comunicación es en un solo sentido, mientras que aquí los colegas la
-inician. Como costo, el mediador concentra la coordinación y puede crecer demasiado; para evitarlo,
-`JefeDeCocina` solo coordina y conoce a los colegas por su rol, no por su clase concreta. Además, debe
-manejar la reentrada: un colega puede responder a un aviso mientras el mediador aún reparte el anterior.
+suscriptores, y *Facade* porque su comunicación es en un solo sentido, mientras que aquí los componentes la
+inician. Como costo, el mediador concentra la coordinación y conoce a cada componente concreto, por lo que
+puede crecer demasiado; para evitarlo, `JefeDeCocina` solo coordina y cada componente sigue haciendo su
+propio trabajo. Además, debe manejar la reentrada: un componente puede responder a un aviso mientras el
+mediador aún reparte el anterior.
 
 ## Plantilla original de la actividad
 
