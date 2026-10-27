@@ -1,0 +1,30 @@
+@startuml
+title POR COMPLETAR - Escenario 2: Mediator (secuencia)
+
+skinparam sequenceMessageAlign left
+
+participant "a : ColegaConcretoA" as a <<ConcreteColleague>>
+participant "m : MediadorConcreto" as m <<ConcreteMediator>>
+participant "b : ColegaConcretoB" as b <<ConcreteColleague>>
+
+' POR COMPLETAR: reemplazar los mensajes por los del escenario.
+a -> m : POR COMPLETAR(evento, a)
+activate m
+m -> b : POR COMPLETAR(evento, a)
+activate b
+b -> m : POR COMPLETAR(respuesta, b)
+deactivate b
+m -> a : POR COMPLETAR(respuesta, b)
+deactivate m
+
+note over a, b
+  Ningún colega tiene referencias a otro:
+  todo pasa por el mediador.
+end note
+
+legend right
+  <<ConcreteMediator>> decide a quién llega cada evento
+  <<ConcreteColleague>> solo habla con el mediador
+endlegend
+
+@enduml

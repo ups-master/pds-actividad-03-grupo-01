@@ -13,8 +13,8 @@
     <description>POM agregador de los escenarios de la actividad 03 de Patrones de Diseño de Software</description>
 
     <modules>
-        <module>escenario-1-mediator/codigo</module>
-        <module>escenario-2-chain-of-responsibility/codigo</module>
+        <module>escenario-1-chain-of-responsibility/codigo</module>
+        <module>escenario-2-mediator/codigo</module>
     </modules>
 
     <properties>

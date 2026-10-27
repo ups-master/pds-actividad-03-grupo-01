@@ -11,12 +11,14 @@ Sigue la estructura de `../pds-actividad-01-grupo-01`.
 
 | Escenario | Patrón | Java |
 |---|---|---|
-| 1 | Mediator | `escenario-1-mediator/` |
-| 2 | Chain of Responsibility | `escenario-2-chain-of-responsibility/` |
+| 1 | Chain of Responsibility | `escenario-1-chain-of-responsibility/` |
+| 2 | Mediator | `escenario-2-mediator/` |
 
-**Estado: esqueleto.** El enunciado aún no está en `docs/enunciado-actividad-03.md`, por lo que el
-dominio de cada escenario, los nombres de clase y los textos de los informes están marcados
-**`POR COMPLETAR`** (`grep -rn "POR COMPLETAR" .`). No inventar el dominio: completar a partir del enunciado.
+**Estado: esqueleto.** El grupo redacta los escenarios en `docs/enunciado-actividad-03.md` (escenario /
+motivación, problema de diseño y justificación del patrón). Escenario 1: validación de pedidos de la tienda
+ficticia *Andes Market*; Escenario 2: coordinación de la cocina del restaurante ficticio *El Fogón Andino*
+(no usar aeropuerto ni formularios de UI: son los ejemplos de refactoring.guru). Lo que aún falta está marcado **`POR COMPLETAR`** (`grep -rn "POR COMPLETAR" .`).
+No inventar el dominio: completar a partir de ese documento.
 Al completar un hueco, quitar su marcador.
 
 Material de referencia (teoría, diagramas y Java de ejemplo):
@@ -28,7 +30,7 @@ Java 21 y Maven 3.9+. El POM padre de la raíz agrega los dos módulos `*/codigo
 
 ```text
 mvn test                                   # raíz: ambos escenarios
-mvn test -pl escenario-1-mediator/codigo
+mvn test -pl escenario-1-chain-of-responsibility/codigo
 mvn test -Dtest=NombreDeLaClaseTest#metodo
 ```
 

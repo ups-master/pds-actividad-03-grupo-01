@@ -59,8 +59,8 @@ Siguiendo las actividades anteriores, para cada escenario el grupo debe:
 
 | Escenario | Problema | Patrón | Informe |
 |---|---|---|---|
-| 1 | POR COMPLETAR | Mediator | [`escenario-1-mediator`](escenario-1-mediator/README.md) |
-| 2 | POR COMPLETAR | Chain of Responsibility | [`escenario-2-chain-of-responsibility`](escenario-2-chain-of-responsibility/README.md) |
+| 1 | POR COMPLETAR | Chain of Responsibility | [`escenario-1-chain-of-responsibility`](escenario-1-chain-of-responsibility/README.md) |
+| 2 | POR COMPLETAR | Mediator | [`escenario-2-mediator`](escenario-2-mediator/README.md) |
 
 Las carpetas llevan el nombre del patrón porque el dominio aún no se conoce. Al llegar el enunciado se
 pueden renombrar (por ejemplo `escenario-1-registro-vehicular` en la actividad 01); en ese caso hay que
@@ -93,12 +93,12 @@ POR COMPLETAR.
 ├── pom.xml                                POM padre: Java 21 y JUnit para los dos módulos
 ├── docs/
 │   └── enunciado-actividad-03.md          Enunciado y plantilla (pendiente)
-├── escenario-1-mediator/
+├── escenario-1-chain-of-responsibility/
 │   ├── README.md                          Informe del escenario 1
 │   ├── uml/                               Diagramas PlantUML (clases y secuencia)
 │   ├── codigo/                            Proyecto Maven y manual de uso
 │   └── docs/                              Trazabilidad UML-código
-└── escenario-2-chain-of-responsibility/
+└── escenario-2-mediator/
     ├── README.md                          Informe del escenario 2
     ├── uml/                               Diagramas PlantUML (clases y secuencia)
     ├── codigo/                            Proyecto Maven y manual de uso
