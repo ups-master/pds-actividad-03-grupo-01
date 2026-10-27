@@ -2,8 +2,8 @@
 
 **UNIVERSIDAD POLITÉCNICA SALESIANA - ECUADOR · Posgrados | Maestría en Software**
 
-> **Estado:** esqueleto. El enunciado todavía no está en el repositorio, así que todo lo que depende del
-> dominio dice **POR COMPLETAR**. Para ver todos los huecos: `grep -rn "POR COMPLETAR" .`
+> **Estado:** los puntos 3 (diagramas UML) y 4 (participantes) están desarrollados en ambos escenarios.
+> La implementación Java y las demás secciones de la entrega siguen pendientes.
 
 ## Datos generales de la actividad
 
@@ -36,7 +36,7 @@
 
 ### Requerimientos generales para ambos escenarios
 
-El enunciado completo está en [`docs/enunciado-actividad-03.md`](docs/enunciado-actividad-03.md) (pendiente).
+La descripción de los dos escenarios está en [`docs/enunciado-actividad-03.md`](docs/enunciado-actividad-03.md); los datos administrativos y la plantilla oficial siguen pendientes.
 
 Siguiendo las actividades anteriores, para cada escenario el grupo debe:
 
@@ -59,12 +59,11 @@ Siguiendo las actividades anteriores, para cada escenario el grupo debe:
 
 | Escenario | Problema | Patrón | Informe |
 |---|---|---|---|
-| 1 | POR COMPLETAR | Chain of Responsibility | [`escenario-1-chain-of-responsibility`](escenario-1-chain-of-responsibility/README.md) |
-| 2 | POR COMPLETAR | Mediator | [`escenario-2-mediator`](escenario-2-mediator/README.md) |
+| 1 | Validación de pedidos de Andes Market | Chain of Responsibility | [`escenario-1-chain-of-responsibility`](escenario-1-chain-of-responsibility/README.md) |
+| 2 | Coordinación de cocina de El Fogón Andino | Mediator | [`escenario-2-mediator`](escenario-2-mediator/README.md) |
 
-Las carpetas llevan el nombre del patrón porque el dominio aún no se conoce. Al llegar el enunciado se
-pueden renombrar (por ejemplo `escenario-1-registro-vehicular` en la actividad 01); en ese caso hay que
-actualizar los `<module>` de [`pom.xml`](pom.xml) y los enlaces de este archivo.
+Las carpetas conservan los nombres de los patrones. Cada escenario contiene UML original y mejorado,
+su secuencia y la identificación de participantes; el diseño mejorado será la referencia para el código posterior.
 
 La referencia teórica y los ejemplos guiados (sala de chat y aprobaciones de compra) están en
 `class-activities-pds/unidad-03-comportamiento/complementarios/{mediator,chain-of-responsibility}`.
