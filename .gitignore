@@ -1,0 +1,10 @@
+# Maven
+target/
+
+# Herramientas
+.github/modernize/
+
+# IDE
+.idea/
+*.iml
+.vscode/
