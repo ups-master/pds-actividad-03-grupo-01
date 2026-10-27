@@ -1,0 +1,54 @@
+@startuml
+title POR COMPLETAR - Escenario 2: Chain of Responsibility
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' POR COMPLETAR: renombrar cada clase con el dominio del enunciado y agregar atributos y operaciones.
+
+abstract class Manejador <<Handler>> {
+    - siguiente : Manejador
+    --
+    + setSiguiente(siguiente : Manejador) : Manejador
+    ' POR COMPLETAR: + atender(solicitud : Solicitud) : resultado
+}
+
+class ManejadorConcretoA <<ConcreteHandler>> {
+    ' POR COMPLETAR: regla que atiende este eslabón
+}
+
+class ManejadorConcretoB <<ConcreteHandler>> {
+    ' POR COMPLETAR
+}
+
+class ManejadorConcretoC <<ConcreteHandler>> {
+    ' POR COMPLETAR
+}
+
+class Solicitud <<record>> {
+    ' POR COMPLETAR: datos que viajan por la cadena
+}
+
+class Cliente <<Client>> {
+    - cadena : Manejador
+    --
+    ' POR COMPLETAR: + solicitar(solicitud : Solicitud) : resultado
+}
+
+Manejador <|-- ManejadorConcretoA
+Manejador <|-- ManejadorConcretoB
+Manejador <|-- ManejadorConcretoC
+' atributo Manejador.siguiente
+Manejador "1" o--> "0..1" Manejador : siguiente
+' atributo Cliente.cadena
+Cliente --> "1" Manejador : envía la solicitud
+Manejador ..> Solicitud : usa
+
+legend right
+  <<Handler>> atiende la solicitud o la pasa al siguiente eslabón
+  <<ConcreteHandler>> define qué solicitudes atiende
+  <<Client>> arma la cadena y envía la solicitud al primero
+  <<record>> dato que viaja entre las clases (no es un rol GoF)
+endlegend
+
+@enduml
