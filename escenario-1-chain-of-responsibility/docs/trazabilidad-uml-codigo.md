@@ -1,37 +1,24 @@
-# Trazabilidad UML–código del escenario 1 (Chain of Responsibility)
+# Trazabilidad prevista: UML y futura implementación del escenario 1
 
-El escenario tiene versiones del diagrama en la carpeta `uml/`. El código vive en `codigo/`:
+El código Java todavía no existe. Esta tabla fija el contrato que deberá implementarse después; no afirma una correspondencia ya verificada.
 
-| Versión | Fuente | Imagen | Uso |
+| Diagrama | Fuente | Imagen | Función |
 |---|---|---|---|
-| Original | `uml/chainE1.puml` | POR COMPLETAR | Histórico, previo a la mejora; ninguna prueba lo lee |
-| Mejorada | `uml/chainE1_mejorado.puml` | POR COMPLETAR | Versión final y referencia de `CorrespondenciaUmlCodigoTest` |
-| Secuencia | `uml/chainE1_secuencia.puml` | POR COMPLETAR | Colaboración en ejecución |
+| Original | [`chainE1.puml`](../uml/chainE1.puml) | [`diagrama-clases-original.png`](../uml/diagrama-clases-original.png) | Propuesta inicial, no será el contrato de código. |
+| Mejorado | [`chainE1_mejorado.puml`](../uml/chainE1_mejorado.puml) | [`diagrama-clases-mejorado.png`](../uml/diagrama-clases-mejorado.png) | Contrato previsto para la implementación. |
+| Secuencia | [`chainE1_secuencia.puml`](../uml/chainE1_secuencia.puml) | No solicitada | Ejemplo de pedido corporativo rechazado por cupón. |
 
-> **POR COMPLETAR:** resumir en qué difiere la versión mejorada de la original.
+La mejora agrega un resultado terminal definido, prevención de ciclos, regla propia separada por validador, extensión de cupones y dependencias explícitas de servicios. La versión original se conserva para mostrar el cambio de diseño.
 
-| Elemento UML | Implementación | Verificación |
+| Elemento del UML mejorado | Correspondencia Java prevista | Verificación futura |
 |---|---|---|
-| Handler (abstracta, atributo `siguiente`) | POR COMPLETAR | Reflexión en `CorrespondenciaUmlCodigoTest` |
-| `setSiguiente(siguiente)` | POR COMPLETAR | Reflexión y prueba de enlace |
-| ConcreteHandler | POR COMPLETAR | Reflexión y pruebas por eslabón |
-| Solicitud | POR COMPLETAR | Reflexión |
-| `Manejador "1" o--> "0..1" Manejador : siguiente` | POR COMPLETAR | Inspección de campos |
-| `Cliente --> "1" Manejador` | POR COMPLETAR | Inspección de campos |
-| Client | POR COMPLETAR | `MainTest` |
+| `ValidadorPedido` | Clase abstracta con `siguiente`, `setSiguiente`, `validar` y `validarPropio` | Reflexión y prueba de aprobación final. |
+| Cinco validadores concretos | Una clase por regla; `ValidadorCupon` opcional en la cadena | Pruebas unitarias por rechazo y delegación. |
+| `Pedido`, `LineaPedido` y `ResultadoValidacion` | Productos y datos de la solicitud; decisión con motivo de rechazo | Casos de aprobación, rechazo y motivo. |
+| `ProcesadorPedidos` | Referencia únicamente al primer validador | Prueba de configuración y procesamiento. |
+| `Inventario`, `ServicioAntifraude`, `CoberturaEntrega`, `ServicioCupones` | Interfaces para las dependencias de reglas | Dobles de prueba para aislar cada validador. |
+| `siguiente` (`0..1` a `0..1`) | Enlace al siguiente eslabón, nunca a sí mismo ni a un predecesor | Pruebas de enlaces válidos y ciclos rechazados. |
 
-## Decisiones de implementación
+En la implementación, `validar` deberá detenerse al primer rechazo, delegar ante aprobación y aprobar si no hay siguiente. El validador antifraude deberá omitir la consulta externa para clientes corporativos. La validación de crédito solo aplica si se paga con crédito; la de cupones solo si se presenta cupón. El orden de los eslabones podrá modificarse al configurar la cadena.
 
-> **POR COMPLETAR:** qué ocurre si nadie atiende la solicitud (rechazo o excepción), si el eslabón que
-> atiende se detiene o continúa, y cómo se evitan ciclos al enlazar.
-
-## Extensiones deliberadas
-
-> **POR COMPLETAR:** elementos del código que el UML omite por claridad (getters, validaciones, etc.).
-
-## Ejecución de la verificación
-
-```text
-# Desde escenario-1-chain-of-responsibility/codigo
-mvn test
-```
+Cuando exista Java, crear `CorrespondenciaUmlCodigoTest` contra `chainE1_mejorado.puml` y ejecutar `mvn test` desde `codigo/`. Hasta entonces no corresponde reportar pruebas aprobadas.

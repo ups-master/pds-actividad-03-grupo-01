@@ -1,54 +1,91 @@
 @startuml
-title POR COMPLETAR - Escenario 1: Chain of Responsibility (versión mejorada)
-
+title Andes Market - cadena de validacion de pedidos (mejorada)
 skinparam classAttributeIconSize 0
-skinparam linetype ortho
-
-' POR COMPLETAR: renombrar cada clase con el dominio del enunciado y agregar atributos y operaciones.
-
-abstract class Manejador <<Handler>> {
-    - siguiente : Manejador
-    --
-    + setSiguiente(siguiente : Manejador) : Manejador
-    ' POR COMPLETAR: + atender(solicitud : Solicitud) : resultado
+abstract class ValidadorPedido <<Handler>> {
+  - siguiente : ValidadorPedido
+  + setSiguiente(siguiente : ValidadorPedido) : ValidadorPedido
+  + validar(pedido : Pedido) : ResultadoValidacion
+  # validarPropio(pedido : Pedido) : ResultadoValidacion
 }
-
-class ManejadorConcretoA <<ConcreteHandler>> {
-    ' POR COMPLETAR: regla que atiende este eslabón
+class ValidadorStock <<ConcreteHandler>> {
+  - inventario : Inventario
+  # validarPropio(pedido : Pedido) : ResultadoValidacion
 }
-
-class ManejadorConcretoB <<ConcreteHandler>> {
-    ' POR COMPLETAR
+class ValidadorAntifraude <<ConcreteHandler>> {
+  - antifraude : ServicioAntifraude
+  # validarPropio(pedido : Pedido) : ResultadoValidacion
 }
-
-class ManejadorConcretoC <<ConcreteHandler>> {
-    ' POR COMPLETAR
+class ValidadorCredito <<ConcreteHandler>> {
+  # validarPropio(pedido : Pedido) : ResultadoValidacion
 }
-
-class Solicitud <<record>> {
-    ' POR COMPLETAR: datos que viajan por la cadena
+class ValidadorDireccion <<ConcreteHandler>> {
+  - cobertura : CoberturaEntrega
+  # validarPropio(pedido : Pedido) : ResultadoValidacion
 }
-
-class Cliente <<Client>> {
-    - cadena : Manejador
-    --
-    ' POR COMPLETAR: + solicitar(solicitud : Solicitud) : resultado
+class ValidadorCupon <<ConcreteHandler>> {
+  - cupones : ServicioCupones
+  # validarPropio(pedido : Pedido) : ResultadoValidacion
 }
-
-Manejador <|-- ManejadorConcretoA
-Manejador <|-- ManejadorConcretoB
-Manejador <|-- ManejadorConcretoC
-' atributo Manejador.siguiente
-Manejador "1" o--> "0..1" Manejador : siguiente
-' atributo Cliente.cadena
-Cliente --> "1" Manejador : envía la solicitud
-Manejador ..> Solicitud : usa
-
-legend right
-  <<Handler>> atiende la solicitud o la pasa al siguiente eslabón
-  <<ConcreteHandler>> define qué solicitudes atiende
-  <<Client>> arma la cadena y envía la solicitud al primero
-  <<record>> dato que viaja entre las clases (no es un rol GoF)
-endlegend
-
+class Pedido <<Solicitud>> {
+  + productos : List<LineaPedido>
+  + total : BigDecimal
+  + pagaConCredito : boolean
+  + clienteCorporativo : boolean
+  + cupoDisponible : BigDecimal
+  + direccion : String
+  + cupon : String
+}
+class LineaPedido {
+  + productoId : String
+  + cantidad : int
+}
+class ResultadoValidacion {
+  + aprobado : boolean
+  + motivo : String
+  + aprobado() : ResultadoValidacion
+  + rechazado(motivo : String) : ResultadoValidacion
+}
+class ProcesadorPedidos <<Client>> {
+  - primerValidador : ValidadorPedido
+  + procesar(pedido : Pedido) : ResultadoValidacion
+}
+interface Inventario {
+  + hayStock(pedido : Pedido) : boolean
+}
+interface ServicioAntifraude {
+  + esSospechoso(pedido : Pedido) : boolean
+}
+interface CoberturaEntrega {
+  + atiende(direccion : String) : boolean
+}
+interface ServicioCupones {
+  + esValido(pedido : Pedido) : boolean
+}
+ValidadorPedido <|-- ValidadorStock
+ValidadorPedido <|-- ValidadorAntifraude
+ValidadorPedido <|-- ValidadorCredito
+ValidadorPedido <|-- ValidadorDireccion
+ValidadorPedido <|-- ValidadorCupon
+ValidadorPedido "0..1" --> "0..1" ValidadorPedido : siguiente
+ProcesadorPedidos --> "1" ValidadorPedido : primerValidador
+ValidadorStock --> "1" Inventario
+ValidadorAntifraude --> "1" ServicioAntifraude
+ValidadorDireccion --> "1" CoberturaEntrega
+ValidadorCupon --> "1" ServicioCupones
+ValidadorPedido ..> Pedido : valida
+Pedido "1" *--> "1..*" LineaPedido : productos
+ValidadorPedido ..> ResultadoValidacion : devuelve
+note right of ValidadorPedido
+  validar detiene ante rechazo y delega ante aprobacion.
+  Sin siguiente, devuelve aprobado.
+  setSiguiente rechaza ciclos y autoenlaces.
+end note
+note right of ValidadorAntifraude
+  Si el cliente es corporativo, omite
+  la consulta antifraude y continua.
+end note
+note bottom of ValidadorCupon
+  Eslabon opcional: se inserta sin cambiar
+  los validadores existentes.
+end note
 @enduml

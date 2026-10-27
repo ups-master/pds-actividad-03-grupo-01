@@ -1,33 +1,28 @@
 @startuml
-title POR COMPLETAR - Escenario 1: Chain of Responsibility (secuencia)
-
-skinparam sequenceMessageAlign left
-
-participant "cliente : Cliente" as cli <<Client>>
-participant "a : ManejadorConcretoA" as a <<ConcreteHandler>>
-participant "b : ManejadorConcretoB" as b <<ConcreteHandler>>
-participant "c : ManejadorConcretoC" as c <<ConcreteHandler>>
-
-' POR COMPLETAR: reemplazar los mensajes y las notas por los del escenario.
-cli -> a : POR COMPLETAR(solicitud)
-activate a
-note right : POR COMPLETAR: A no puede atenderla
-a -> b : POR COMPLETAR(solicitud)
-activate b
-note right : POR COMPLETAR: B la atiende
-b --> a : POR COMPLETAR(resultado)
-deactivate b
-a --> cli : POR COMPLETAR(resultado)
-deactivate a
-
-note over c
-  C no llega a participar: la cadena se detiene
-  en el primer eslabón que puede resolver la solicitud.
-end note
-
-legend right
-  <<ConcreteHandler>> atiende o delega en el siguiente
-  <<Client>> solo conoce el primer eslabón
-endlegend
-
+title Andes Market - pedido corporativo con cupon invalido
+actor Cliente
+participant "procesador : ProcesadorPedidos" as p
+participant "stock : ValidadorStock" as s
+participant "fraude : ValidadorAntifraude" as f
+participant "credito : ValidadorCredito" as c
+participant "direccion : ValidadorDireccion" as d
+participant "cupon : ValidadorCupon" as u
+Cliente -> p : procesar(pedido)
+p -> s : validar(pedido)
+s -> s : validarPropio(pedido) = aprobado
+s -> f : validar(pedido)
+note right of f : Cliente corporativo: no consulta antifraude.
+f -> c : validar(pedido)
+c -> c : validarPropio(pedido) = aprobado
+c -> d : validar(pedido)
+d -> d : validarPropio(pedido) = aprobado
+d -> u : validar(pedido)
+u -> u : validarPropio(pedido) = rechazado("Cupon invalido")
+u --> d : rechazado
+d --> c : rechazado
+c --> f : rechazado
+f --> s : rechazado
+s --> p : rechazado
+p --> Cliente : motivo del rechazo
+note over u : El primer rechazo detiene la cadena.
 @enduml

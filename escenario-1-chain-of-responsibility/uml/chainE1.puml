@@ -1,54 +1,38 @@
 @startuml
-title POR COMPLETAR - Escenario 1: Chain of Responsibility
-
+title Andes Market - validacion de pedidos (propuesta original)
 skinparam classAttributeIconSize 0
-skinparam linetype ortho
-
-' POR COMPLETAR: renombrar cada clase con el dominio del enunciado y agregar atributos y operaciones.
-
-abstract class Manejador <<Handler>> {
-    - siguiente : Manejador
-    --
-    + setSiguiente(siguiente : Manejador) : Manejador
-    ' POR COMPLETAR: + atender(solicitud : Solicitud) : resultado
+abstract class ValidadorPedido <<Handler>> {
+  - siguiente : ValidadorPedido
+  + setSiguiente(siguiente : ValidadorPedido) : ValidadorPedido
+  + validar(pedido : Pedido) : ResultadoValidacion
 }
-
-class ManejadorConcretoA <<ConcreteHandler>> {
-    ' POR COMPLETAR: regla que atiende este eslabón
+class ValidadorStock <<ConcreteHandler>>
+class ValidadorAntifraude <<ConcreteHandler>>
+class ValidadorCredito <<ConcreteHandler>>
+class ValidadorDireccion <<ConcreteHandler>>
+class Pedido <<Solicitud>> {
+  + total : BigDecimal
+  + pagaConCredito : boolean
+  + clienteCorporativo : boolean
 }
-
-class ManejadorConcretoB <<ConcreteHandler>> {
-    ' POR COMPLETAR
+class ResultadoValidacion {
+  + aprobado : boolean
+  + motivo : String
 }
-
-class ManejadorConcretoC <<ConcreteHandler>> {
-    ' POR COMPLETAR
+class ProcesadorPedidos <<Client>> {
+  - primerValidador : ValidadorPedido
+  + procesar(pedido : Pedido) : ResultadoValidacion
 }
-
-class Solicitud <<record>> {
-    ' POR COMPLETAR: datos que viajan por la cadena
-}
-
-class Cliente <<Client>> {
-    - cadena : Manejador
-    --
-    ' POR COMPLETAR: + solicitar(solicitud : Solicitud) : resultado
-}
-
-Manejador <|-- ManejadorConcretoA
-Manejador <|-- ManejadorConcretoB
-Manejador <|-- ManejadorConcretoC
-' atributo Manejador.siguiente
-Manejador "1" o--> "0..1" Manejador : siguiente
-' atributo Cliente.cadena
-Cliente --> "1" Manejador : envía la solicitud
-Manejador ..> Solicitud : usa
-
-legend right
-  <<Handler>> atiende la solicitud o la pasa al siguiente eslabón
-  <<ConcreteHandler>> define qué solicitudes atiende
-  <<Client>> arma la cadena y envía la solicitud al primero
-  <<record>> dato que viaja entre las clases (no es un rol GoF)
-endlegend
-
+ValidadorPedido <|-- ValidadorStock
+ValidadorPedido <|-- ValidadorAntifraude
+ValidadorPedido <|-- ValidadorCredito
+ValidadorPedido <|-- ValidadorDireccion
+ValidadorPedido "0..1" --> "0..1" ValidadorPedido : siguiente
+ProcesadorPedidos --> "1" ValidadorPedido : primerValidador
+ValidadorPedido ..> Pedido : valida
+ValidadorPedido ..> ResultadoValidacion : devuelve
+note bottom of ValidadorPedido
+  Propuesta inicial: delega al siguiente, pero no define
+  el resultado al final ni impide enlaces circulares.
+end note
 @enduml
