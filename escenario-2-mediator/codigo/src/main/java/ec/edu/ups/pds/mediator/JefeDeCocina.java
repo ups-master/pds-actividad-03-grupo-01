@@ -22,13 +22,26 @@ public class JefeDeCocina implements MediadorCocina {
             case PEDIDO_REGISTRADO: {
                 PedidoMesa pedido = evento.getPedido();
                 validarPlatos(pedido);
-                EstadoMesa existente = estados.get(pedido.getMesaId());
-                if (existente == null) {
-                    estados.put(pedido.getMesaId(), new EstadoMesa(pedido.getPlatos()));
-                } else {
-                    existente.agregarPlatos(pedido.getPlatos());
+                // El estado debe existir antes de repartir (un colega puede responder durante el reparto),
+                // pero si una estacion falla se restaura el anterior para no dejar platos sin dueno.
+                EstadoMesa anterior = estados.get(pedido.getMesaId());
+                EstadoMesa nuevo = anterior == null
+                        ? new EstadoMesa(pedido.getPlatos())
+                        : new EstadoMesa(anterior);
+                if (anterior != null) {
+                    nuevo.agregarPlatos(pedido.getPlatos());
                 }
-                repartirPedido(pedido);
+                estados.put(pedido.getMesaId(), nuevo);
+                try {
+                    repartirPedido(pedido);
+                } catch (RuntimeException e) {
+                    if (anterior == null) {
+                        estados.remove(pedido.getMesaId());
+                    } else {
+                        estados.put(pedido.getMesaId(), anterior);
+                    }
+                    throw e;
+                }
                 break;
             }
 

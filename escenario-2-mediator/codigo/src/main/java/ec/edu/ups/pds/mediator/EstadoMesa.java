@@ -1,5 +1,6 @@
 package ec.edu.ups.pds.mediator;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,15 @@ public class EstadoMesa {
 
     public EstadoMesa(List<String> platos) {
         sumarPendientes(platos);
+    }
+
+    /** Copia independiente: el mediador la usa para poder deshacer un pedido que falla al repartirse. */
+    public EstadoMesa(EstadoMesa otro) {
+        pendientes = new HashMap<>(otro.pendientes);
+        listos     = new HashMap<>(otro.listos);
+        servidos   = new HashMap<>(otro.servidos);
+        retirados  = new HashMap<>(otro.retirados);
+        servida    = otro.servida;
     }
 
     /** Suma platos de un pedido posterior de la misma mesa y la vuelve a abrir. */
@@ -33,9 +43,17 @@ public class EstadoMesa {
         servida = true;
     }
 
-    /** Devuelve false si el plato no era parte del pedido, en cuyo caso no cambia nada. */
+    /**
+     * Devuelve false si el plato no era parte del pedido, en cuyo caso no cambia nada. Si al retirarlo
+     * no queda nada por resolver y la mesa ya habia servido platos, queda servida: asi un pedido
+     * posterior que se agota por completo no la deja abierta.
+     */
     public boolean retirar(String plato) {
-        return moverUno(pendientes, retirados, plato) || moverUno(listos, retirados, plato);
+        boolean retirado = moverUno(pendientes, retirados, plato) || moverUno(listos, retirados, plato);
+        if (retirado && pendientes.isEmpty() && listos.isEmpty() && !servidos.isEmpty()) {
+            servida = true;
+        }
+        return retirado;
     }
 
     /** Lista para servir: sin pendientes, con algo que servir y sin haberse servido ya. */
@@ -48,19 +66,19 @@ public class EstadoMesa {
     }
 
     public Map<String, Integer> getPendientes() {
-        return pendientes;
+        return Collections.unmodifiableMap(pendientes);
     }
 
     public Map<String, Integer> getListos() {
-        return listos;
+        return Collections.unmodifiableMap(listos);
     }
 
     public Map<String, Integer> getServidos() {
-        return servidos;
+        return Collections.unmodifiableMap(servidos);
     }
 
     public Map<String, Integer> getRetirados() {
-        return retirados;
+        return Collections.unmodifiableMap(retirados);
     }
 
     private void sumarPendientes(List<String> platos) {

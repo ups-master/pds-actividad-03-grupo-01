@@ -33,6 +33,17 @@ class JefeDeCocinaTest {
         }
     }
 
+    /** Estacion de parrillada que falla al recibir su parte de un pedido. */
+    static class EstacionRota extends ComponenteCocina {
+        EstacionRota(MediadorCocina mediador) { super(mediador); }
+
+        @Override public void recibir(EventoCocina evento) {
+            throw new IllegalStateException("estacion fuera de servicio");
+        }
+        @Override public boolean atiende(TipoEvento tipo) { return tipo == TipoEvento.PEDIDO_REGISTRADO; }
+        @Override public boolean prepara(String plato)    { return plato.equals("parrillada"); }
+    }
+
     private JefeDeCocina jefe;
     private Mesero mesero;
     private EstacionCaliente caliente;
@@ -261,5 +272,56 @@ class JefeDeCocinaTest {
     void platoListoDeMesaDesconocida_SeIgnora() {
         assertDoesNotThrow(() -> caliente.prepararPlato("99", "lomo"));
         assertNull(jefe.obtenerEstado("99"));
+    }
+
+    @Test
+    void pedidoQueFallaAlRepartirse_NoDejaEstadoDeMesa() {
+        jefe.registrar(new EstacionRota(jefe));
+
+        assertThrows(IllegalStateException.class,
+                () -> mesero.registrarPedido(new PedidoMesa("20", List.of("lomo", "parrillada"))));
+
+        assertNull(jefe.obtenerEstado("20"), "Un pedido que falla no debe dejar platos sin dueno");
+    }
+
+    @Test
+    void segundoPedidoQueFalla_ConservaElEstadoAnterior() {
+        mesero.registrarPedido(new PedidoMesa("21", List.of("lomo")));
+        EstadoMesa antes = jefe.obtenerEstado("21");
+        jefe.registrar(new EstacionRota(jefe));
+
+        assertThrows(IllegalStateException.class,
+                () -> mesero.registrarPedido(new PedidoMesa("21", List.of("parrillada"))));
+
+        assertSame(antes, jefe.obtenerEstado("21"), "Debe restaurarse el estado previo");
+        assertEquals(Map.of("lomo", 1), jefe.obtenerEstado("21").getPendientes());
+    }
+
+    @Test
+    void segundoPedidoTotalmenteRetirado_CierraLaMesaSinRepetirElAviso() {
+        mesero.registrarPedido(new PedidoMesa("22", List.of("lomo")));
+        caliente.prepararPlato("22", "lomo");
+        mesero.registrarPedido(new PedidoMesa("22", List.of("fritada")));
+        caliente.reportarFaltante("22", "fritada");
+
+        EstadoMesa estado = jefe.obtenerEstado("22");
+        assertTrue(estado.estaServida(), "No queda nada por resolver: la mesa no puede quedar abierta");
+        assertEquals(Map.of("lomo", 1), estado.getServidos(), "Lo ya servido se conserva");
+        assertEquals(Map.of("fritada", 1), estado.getRetirados());
+        assertEquals(1, oyente.contar(TipoEvento.MESA_LISTA), "No hay nada nuevo que servir");
+    }
+
+    @Test
+    void cuentaSePuedeVolverAPedir_YReflejaLoServidoHastaEseMomento() {
+        mesero.registrarPedido(new PedidoMesa("23", List.of("lomo", "ceviche")));
+        caliente.prepararPlato("23", "lomo");
+        mesero.solicitarCuenta("23");
+        assertTrue(caja.obtenerCuenta("23").isEmpty(), "El lomo esta listo pero aun no se sirvio");
+
+        fria.prepararPlato("23", "ceviche");
+        mesero.solicitarCuenta("23");
+
+        assertEquals(Map.of("lomo", 1, "ceviche", 1), caja.obtenerCuenta("23"),
+                "La segunda solicitud reemplaza la cuenta con lo servido");
     }
 }
