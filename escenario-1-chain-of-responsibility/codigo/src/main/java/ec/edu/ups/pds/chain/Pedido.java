@@ -15,7 +15,7 @@ public class Pedido {
     private final String cupon;
 
     private Pedido(Builder b) {
-        this.productos         = Collections.unmodifiableList(b.productos);
+        this.productos         = List.copyOf(b.productos);
         this.total             = b.total;
         this.pagaConCredito    = b.pagaConCredito;
         this.clienteCorporativo = b.clienteCorporativo;
@@ -31,11 +31,6 @@ public class Pedido {
     public BigDecimal getCupoDisponible()         { return cupoDisponible; }
     public String getDireccion()                  { return direccion; }
     public String getCupon()                      { return cupon; }
-
-    @Override
-    public String toString() {
-        return "Pedido{total=" + total + ", productos=" + productos + "}";
-    }
 
     public static class Builder {
         private List<LineaPedido> productos  = Collections.emptyList();
@@ -82,8 +77,14 @@ public class Pedido {
         }
 
         public Pedido build() {
-            if (productos.isEmpty()) {
+            if (productos == null || productos.isEmpty()) {
                 throw new IllegalStateException("El pedido debe tener al menos un producto");
+            }
+            if (total == null) {
+                throw new IllegalStateException("El total del pedido es obligatorio");
+            }
+            if (cupoDisponible == null) {
+                throw new IllegalStateException("El cupo disponible es obligatorio");
             }
             return new Pedido(this);
         }

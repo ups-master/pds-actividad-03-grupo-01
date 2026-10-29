@@ -28,9 +28,9 @@ public class Demo {
         }
     }
 
-    static class AntifraudioSimulado implements ServicioAntifraude {
+    static class AntifraudeSimulado implements ServicioAntifraude {
         private final boolean sospechoso;
-        AntifraudioSimulado(boolean sospechoso) { this.sospechoso = sospechoso; }
+        AntifraudeSimulado(boolean sospechoso) { this.sospechoso = sospechoso; }
 
         @Override
         public boolean esSospechoso(Pedido pedido) {
@@ -65,15 +65,16 @@ public class Demo {
     }
 
     // -----------------------------------------------------------------------
-    // Fabrica de cadena estandar: Stock -> Antifraude -> Credito -> Direccion
+    // Armado de cadenas (lo hace quien configura, no el ProcesadorPedidos)
     // -----------------------------------------------------------------------
 
+    /** Cadena estandar: Stock -> Antifraude -> Credito -> Direccion. */
     static ProcesadorPedidos cadenaEstandar(
             boolean hayStock, boolean esSospechoso, boolean tieneCob) {
 
-        ValidadorStock     stock     = new ValidadorStock(new InventarioSimulado(hayStock));
-        ValidadorAntifraude fraude   = new ValidadorAntifraude(new AntifraudioSimulado(esSospechoso));
-        ValidadorCredito   credito   = new ValidadorCredito() {
+        ValidadorStock      stock   = new ValidadorStock(new InventarioSimulado(hayStock));
+        ValidadorAntifraude fraude  = new ValidadorAntifraude(new AntifraudeSimulado(esSospechoso));
+        ValidadorCredito    credito = new ValidadorCredito() {
             @Override
             protected ResultadoValidacion validarPropio(Pedido pedido) {
                 ResultadoValidacion r = super.validarPropio(pedido);
@@ -88,9 +89,21 @@ public class Demo {
                 return r;
             }
         };
-        ValidadorDireccion dir = new ValidadorDireccion(new CoberturaSimulada(tieneCob));
+        ValidadorDireccion  dir     = new ValidadorDireccion(new CoberturaSimulada(tieneCob));
 
         stock.setSiguiente(fraude).setSiguiente(credito).setSiguiente(dir);
+        return new ProcesadorPedidos(stock);
+    }
+
+    /** Cadena de cinco eslabones, con el cupon al final: la del diagrama de secuencia. */
+    static ProcesadorPedidos cadenaConCupon(boolean cuponValido) {
+        ValidadorStock      stock  = new ValidadorStock(new InventarioSimulado(true));
+        ValidadorAntifraude fraude = new ValidadorAntifraude(new AntifraudeSimulado(true));
+        ValidadorCredito    cred   = new ValidadorCredito();
+        ValidadorDireccion  dir    = new ValidadorDireccion(new CoberturaSimulada(true));
+        ValidadorCupon      cupon  = new ValidadorCupon(new CuponesSimulados(cuponValido));
+
+        stock.setSiguiente(fraude).setSiguiente(cred).setSiguiente(dir).setSiguiente(cupon);
         return new ProcesadorPedidos(stock);
     }
 
@@ -180,67 +193,50 @@ public class Demo {
                         .build(),
                 cadenaEstandar(true, false, false));
 
-        // 7. Cliente corporativo: salta antifraude
-        System.out.println();
-        System.out.println("  Pedido 7: Cliente corporativo - antifraude omitido por regla de negocio");
-        System.out.println("  " + "-".repeat(55));
-        ValidadorStock     sc7 = new ValidadorStock(new InventarioSimulado(true));
-        ValidadorAntifraude af7 = new ValidadorAntifraude(new AntifraudioSimulado(true)) {
-            @Override
-            protected ResultadoValidacion validarPropio(Pedido pedido) {
-                if (pedido.isClienteCorporativo()) {
-                    System.out.printf("    %-14s %s%n", "[Antifraude]", "OMITIDO - cliente corporativo");
-                    return ResultadoValidacion.aprobado();
-                }
-                return super.validarPropio(pedido);
-            }
-        };
-        ValidadorDireccion dir7 = new ValidadorDireccion(new CoberturaSimulada(true));
-        sc7.setSiguiente(af7).setSiguiente(new ValidadorCredito()).setSiguiente(dir7);
-        ProcesadorPedidos p7 = new ProcesadorPedidos(sc7);
-        Pedido pedidoCorp = new Pedido.Builder()
-                .productos(List.of(new LineaPedido("SERV-CORP", 100)))
-                .total(new BigDecimal("45000.00"))
-                .clienteCorporativo(true)
-                .direccion("Parque Empresarial Quito Norte")
-                .build();
-        ResultadoValidacion r7 = p7.procesar(pedidoCorp);
-        System.out.println("  " + "-".repeat(55));
-        System.out.println("  Resultado: " + r7);
+        // 7. Cliente corporativo: ValidadorAntifraude omite la consulta (el servicio marcaria sospecha)
+        imprimir(7, "Cliente corporativo - no aparece la linea [Antifraude]: no se consulta",
+                new Pedido.Builder()
+                        .productos(List.of(new LineaPedido("SERV-CORP", 100)))
+                        .total(new BigDecimal("45000.00"))
+                        .clienteCorporativo(true)
+                        .direccion("Parque Empresarial Quito Norte")
+                        .build(),
+                cadenaEstandar(true, true, true));
 
-        // 8. Black Friday: cadena con ValidadorCupon insertado
-        System.out.println();
-        System.out.println("  Pedido 8: BLACK FRIDAY - cadena con ValidadorCupon insertado (cupon valido)");
-        System.out.println("  " + "-".repeat(55));
-        ValidadorStock     sc8  = new ValidadorStock(new InventarioSimulado(true));
-        ValidadorCupon     cup8 = new ValidadorCupon(new CuponesSimulados(true));
-        ValidadorDireccion dir8 = new ValidadorDireccion(new CoberturaSimulada(true));
-        sc8.setSiguiente(cup8).setSiguiente(dir8);
-        ProcesadorPedidos p8 = new ProcesadorPedidos(sc8);
-        Pedido pedidoBF = new Pedido.Builder()
-                .productos(List.of(new LineaPedido("AUDIFONOS-BF", 3)))
-                .total(new BigDecimal("210.00"))
-                .cupon("BLACKFRIDAY2024")
-                .direccion("Av. 9 de Octubre, Guayaquil")
-                .build();
-        ResultadoValidacion r8 = p8.procesar(pedidoBF);
-        System.out.println("  " + "-".repeat(55));
-        System.out.println("  Resultado: " + r8);
+        // 8. Diagrama de secuencia: corporativo, cadena de cinco eslabones, cupon invalido al final
+        imprimir(8, "Corporativo con cupon invalido - cadena de 5 eslabones (secuencia UML)",
+                new Pedido.Builder()
+                        .productos(List.of(new LineaPedido("SERV-CORP", 10)))
+                        .total(new BigDecimal("4500.00"))
+                        .clienteCorporativo(true)
+                        .cupon("PROMO-2019")
+                        .direccion("Parque Empresarial Quito Norte")
+                        .build(),
+                cadenaConCupon(false));
 
-        System.out.println();
-        System.out.println("  Pedido 9: BLACK FRIDAY - cupon expirado");
-        System.out.println("  " + "-".repeat(55));
-        ValidadorCupon cup9 = new ValidadorCupon(new CuponesSimulados(false));
-        ProcesadorPedidos p9 = new ProcesadorPedidos(cup9);
-        Pedido pedidoBF2 = new Pedido.Builder()
-                .productos(List.of(new LineaPedido("TABLET-X", 1)))
-                .total(new BigDecimal("350.00"))
-                .cupon("PROMO-2019")
-                .direccion("Av. 6 de Diciembre, Quito")
-                .build();
-        ResultadoValidacion r9 = p9.procesar(pedidoBF2);
-        System.out.println("  " + "-".repeat(55));
-        System.out.println("  Resultado: " + r9);
+        // 9. Black Friday: cadena reordenada con ValidadorCupon insertado entre Stock y Direccion
+        ValidadorStock     stock = new ValidadorStock(new InventarioSimulado(true));
+        ValidadorCupon     cup   = new ValidadorCupon(new CuponesSimulados(true));
+        ValidadorDireccion dir   = new ValidadorDireccion(new CoberturaSimulada(true));
+        stock.setSiguiente(cup).setSiguiente(dir);
+        imprimir(9, "BLACK FRIDAY - Stock -> Cupon -> Direccion (cupon valido)",
+                new Pedido.Builder()
+                        .productos(List.of(new LineaPedido("AUDIFONOS-BF", 3)))
+                        .total(new BigDecimal("210.00"))
+                        .cupon("BLACKFRIDAY2024")
+                        .direccion("Av. 9 de Octubre, Guayaquil")
+                        .build(),
+                new ProcesadorPedidos(stock));
+
+        // 10. Eslabon unico: la cadena puede tener un solo validador
+        imprimir(10, "BLACK FRIDAY - cupon expirado (cadena de un solo eslabon)",
+                new Pedido.Builder()
+                        .productos(List.of(new LineaPedido("TABLET-X", 1)))
+                        .total(new BigDecimal("350.00"))
+                        .cupon("PROMO-2019")
+                        .direccion("Av. 6 de Diciembre, Quito")
+                        .build(),
+                new ProcesadorPedidos(new ValidadorCupon(new CuponesSimulados(false))));
 
         System.out.println();
         System.out.println("=".repeat(60));
