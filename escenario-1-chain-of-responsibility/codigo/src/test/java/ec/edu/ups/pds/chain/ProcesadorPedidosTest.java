@@ -426,4 +426,52 @@ class ProcesadorPedidosTest {
 
         assertEquals(1, pedido.getProductos().size(), "El pedido guarda una copia de los productos");
     }
+
+    @Test
+    void pedidoConProductoNuloNoSePuedeConstruir() {
+        List<LineaPedido> conNulo = java.util.Arrays.asList(null, new LineaPedido("TECH-001", 1));
+
+        assertThrows(IllegalStateException.class,
+                () -> new Pedido.Builder().productos(conNulo).build());
+    }
+
+    @Test
+    void pedidoConTotalONegativoNoSePuedeConstruir() {
+        List<LineaPedido> productos = List.of(new LineaPedido("TECH-001", 1));
+
+        assertThrows(IllegalStateException.class, () -> new Pedido.Builder()
+                .productos(productos).total(new BigDecimal("-1")).build());
+    }
+
+    @Test
+    void pedidoConCupoNegativoNoSePuedeConstruir() {
+        List<LineaPedido> productos = List.of(new LineaPedido("TECH-001", 1));
+
+        assertThrows(IllegalStateException.class, () -> new Pedido.Builder()
+                .productos(productos).cupoDisponible(new BigDecimal("-1")).build());
+    }
+
+    // -----------------------------------------------------------------------
+    // Escenario 16: entradas nulas
+    // -----------------------------------------------------------------------
+
+    @Test
+    void procesadorSinPrimerValidadorNoSePuedeConstruir() {
+        assertThrows(IllegalArgumentException.class, () -> new ProcesadorPedidos(null));
+    }
+
+    @Test
+    void procesarUnPedidoNuloLanzaUnErrorClaro() {
+        ProcesadorPedidos p = new ProcesadorPedidos(new ValidadorStock(new InventarioConStock()));
+
+        assertThrows(IllegalArgumentException.class, () -> p.procesar(null));
+    }
+
+    @Test
+    void setSiguienteRechazaNulo() {
+        ValidadorStock stock = new ValidadorStock(new InventarioConStock());
+
+        assertThrows(IllegalArgumentException.class, () -> stock.setSiguiente(null),
+                "Devolver null rompia el encadenamiento fluido con un NPE");
+    }
 }

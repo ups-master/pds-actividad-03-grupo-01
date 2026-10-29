@@ -3,6 +3,7 @@ package ec.edu.ups.pds.chain;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class Pedido {
 
@@ -80,11 +81,20 @@ public class Pedido {
             if (productos == null || productos.isEmpty()) {
                 throw new IllegalStateException("El pedido debe tener al menos un producto");
             }
+            if (productos.stream().anyMatch(Objects::isNull)) {
+                throw new IllegalStateException("El pedido no admite productos nulos");
+            }
             if (total == null) {
                 throw new IllegalStateException("El total del pedido es obligatorio");
             }
+            if (total.signum() < 0) {
+                throw new IllegalStateException("El total del pedido no puede ser negativo");
+            }
             if (cupoDisponible == null) {
                 throw new IllegalStateException("El cupo disponible es obligatorio");
+            }
+            if (cupoDisponible.signum() < 0) {
+                throw new IllegalStateException("El cupo disponible no puede ser negativo");
             }
             return new Pedido(this);
         }
