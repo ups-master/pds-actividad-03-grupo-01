@@ -18,9 +18,4 @@ public class LineaPedido {
 
     public String getProductoId() { return productoId; }
     public int getCantidad()      { return cantidad; }
-
-    @Override
-    public String toString() {
-        return productoId + " x" + cantidad;
-    }
 }

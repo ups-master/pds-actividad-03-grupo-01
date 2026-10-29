@@ -11,8 +11,9 @@
  *       {@link ec.edu.ups.pds.chain.ValidadorCredito},
  *       {@link ec.edu.ups.pds.chain.ValidadorDireccion} y, como eslabon opcional de
  *       temporada, {@link ec.edu.ups.pds.chain.ValidadorCupon}.</li>
- *   <li><b>Client:</b> {@link ec.edu.ups.pds.chain.ProcesadorPedidos} — arma la cadena y
- *       envia el pedido unicamente al primer eslabon.</li>
+ *   <li><b>Client:</b> {@link ec.edu.ups.pds.chain.ProcesadorPedidos} — recibe solo el primer
+ *       eslabon y le envia el pedido; quien configura el sistema (aqui {@code Demo}) enlaza los
+ *       eslabones con {@code setSiguiente}.</li>
  *   <li><b>Solicitud:</b> {@link ec.edu.ups.pds.chain.Pedido} (con sus
  *       {@link ec.edu.ups.pds.chain.LineaPedido}).</li>
  * </ul>

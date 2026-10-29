@@ -1,6 +1,5 @@
 package ec.edu.ups.pds.chain;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -26,11 +25,11 @@ class ProcesadorPedidosTest {
         @Override public boolean hayStock(Pedido pedido) { return false; }
     }
 
-    static class AntifraudioLimpio implements ServicioAntifraude {
+    static class AntifraudeLimpio implements ServicioAntifraude {
         @Override public boolean esSospechoso(Pedido pedido) { return false; }
     }
 
-    static class AntifraudioSospechoso implements ServicioAntifraude {
+    static class AntifraudeSospechoso implements ServicioAntifraude {
         @Override public boolean esSospechoso(Pedido pedido) { return true; }
     }
 
@@ -81,7 +80,7 @@ class ProcesadorPedidosTest {
     @Test
     void pedidoAprobadoCuandoTodasLasValidacionesPasan() {
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioConStock(), new AntifraudioLimpio(), new CoberturaTotal());
+                new InventarioConStock(), new AntifraudeLimpio(), new CoberturaTotal());
 
         ResultadoValidacion r = p.procesar(pedidoBase());
 
@@ -96,7 +95,7 @@ class ProcesadorPedidosTest {
     @Test
     void pedidoRechazadoCuandoNoHayStock() {
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioSinStock(), new AntifraudioLimpio(), new CoberturaTotal());
+                new InventarioSinStock(), new AntifraudeLimpio(), new CoberturaTotal());
 
         ResultadoValidacion r = p.procesar(pedidoBase());
 
@@ -112,7 +111,7 @@ class ProcesadorPedidosTest {
     @Test
     void pedidoRechazadoCuandoEsSospechoso() {
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioConStock(), new AntifraudioSospechoso(), new CoberturaTotal());
+                new InventarioConStock(), new AntifraudeSospechoso(), new CoberturaTotal());
 
         ResultadoValidacion r = p.procesar(pedidoBase());
 
@@ -136,7 +135,7 @@ class ProcesadorPedidosTest {
                 .build();
 
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioConStock(), new AntifraudioLimpio(), new CoberturaTotal());
+                new InventarioConStock(), new AntifraudeLimpio(), new CoberturaTotal());
 
         ResultadoValidacion r = p.procesar(pedidoCredito);
 
@@ -160,7 +159,7 @@ class ProcesadorPedidosTest {
                 .build();
 
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioConStock(), new AntifraudioLimpio(), new CoberturaTotal());
+                new InventarioConStock(), new AntifraudeLimpio(), new CoberturaTotal());
 
         assertTrue(p.procesar(pedidoCredito).isAprobado());
     }
@@ -172,7 +171,7 @@ class ProcesadorPedidosTest {
     @Test
     void pedidoRechazadoCuandoDireccionSinCobertura() {
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioConStock(), new AntifraudioLimpio(), new CoberturaNula());
+                new InventarioConStock(), new AntifraudeLimpio(), new CoberturaNula());
 
         ResultadoValidacion r = p.procesar(pedidoBase());
 
@@ -194,11 +193,17 @@ class ProcesadorPedidosTest {
                 .direccion("Parque Empresarial Quito Norte, Quito")
                 .build();
 
+        boolean[] consultado = {false};
+        ServicioAntifraude espia = pedido -> {
+            consultado[0] = true;
+            return true;
+        };
         ProcesadorPedidos p = procesadorEstandar(
-                new InventarioConStock(), new AntifraudioSospechoso(), new CoberturaTotal());
+                new InventarioConStock(), espia, new CoberturaTotal());
 
         assertTrue(p.procesar(pedidoCorp).isAprobado(),
                 "Cliente corporativo debe ser aprobado incluso si el antifraude marca sospecha");
+        assertFalse(consultado[0], "Para un corporativo el validador no debe consultar el servicio");
     }
 
     // -----------------------------------------------------------------------
@@ -206,7 +211,7 @@ class ProcesadorPedidosTest {
     // -----------------------------------------------------------------------
 
     @Test
-    void cadenaSeDtieneEnPrimerFallo() {
+    void cadenaSeDetieneEnPrimerFallo() {
         boolean[] antifraudioConsultado = {false};
         ServicioAntifraude espiaAntifraude = pedido -> {
             antifraudioConsultado[0] = true;
@@ -323,16 +328,15 @@ class ProcesadorPedidosTest {
     void ordenDireccionStockAntesDeCostosos() {
         ValidadorDireccion direccion = new ValidadorDireccion(new CoberturaNula());
         ValidadorStock     stock     = new ValidadorStock(new InventarioConStock());
-        ValidadorAntifraude fraude   = new ValidadorAntifraude(new AntifraudioSospechoso());
 
         boolean[] fraudeConsultado = {false};
         ServicioAntifraude espiaFraude = p -> {
             fraudeConsultado[0] = true;
             return true;
         };
-        ValidadorAntifraude frauConEspia = new ValidadorAntifraude(espiaFraude);
+        ValidadorAntifraude fraudeConEspia = new ValidadorAntifraude(espiaFraude);
 
-        direccion.setSiguiente(stock).setSiguiente(frauConEspia);
+        direccion.setSiguiente(stock).setSiguiente(fraudeConEspia);
         ProcesadorPedidos p = new ProcesadorPedidos(direccion);
 
         ResultadoValidacion r = p.procesar(pedidoBase());
@@ -340,5 +344,134 @@ class ProcesadorPedidosTest {
         assertFalse(r.isAprobado());
         assertFalse(fraudeConsultado[0],
                 "Con direccion primero, antifraude no debe consultarse si la direccion falla");
+    }
+
+    // -----------------------------------------------------------------------
+    // Escenario 13: la cadena del diagrama de secuencia (corporativo, cupon invalido)
+    // -----------------------------------------------------------------------
+
+    @Test
+    void corporativoConCuponInvalido_RecorreLosCincoEslabonesYRechazaEnElUltimo() {
+        List<String> recorrido = new java.util.ArrayList<>();
+        ValidadorStock stock = new ValidadorStock(pedido -> { recorrido.add("stock"); return true; });
+        ValidadorAntifraude fraude = new ValidadorAntifraude(pedido -> { recorrido.add("antifraude"); return true; });
+        ValidadorCredito credito = new ValidadorCredito();
+        ValidadorDireccion direccion = new ValidadorDireccion(d -> { recorrido.add("direccion"); return true; });
+        ValidadorCupon cupon = new ValidadorCupon(pedido -> { recorrido.add("cupon"); return false; });
+        stock.setSiguiente(fraude).setSiguiente(credito).setSiguiente(direccion).setSiguiente(cupon);
+
+        Pedido pedidoCorp = new Pedido.Builder()
+                .productos(List.of(new LineaPedido("SERV-001", 10)))
+                .total(new BigDecimal("4500.00"))
+                .clienteCorporativo(true)
+                .cupon("PROMO-2019")
+                .direccion("Parque Empresarial Quito Norte")
+                .build();
+
+        ResultadoValidacion r = new ProcesadorPedidos(stock).procesar(pedidoCorp);
+
+        assertFalse(r.isAprobado());
+        assertTrue(r.getMotivo().toLowerCase().contains("cupon"));
+        assertEquals(List.of("stock", "direccion", "cupon"), recorrido,
+                "El corporativo omite la consulta antifraude y el rechazo llega en el cupon");
+    }
+
+    // -----------------------------------------------------------------------
+    // Escenario 14: cadenas de un eslabon y reenlazado
+    // -----------------------------------------------------------------------
+
+    @Test
+    void cadenaDeUnSoloEslabonAprueba() {
+        ProcesadorPedidos p = new ProcesadorPedidos(new ValidadorStock(new InventarioConStock()));
+
+        assertTrue(p.procesar(pedidoBase()).isAprobado(), "Sin siguiente, el final de la cadena aprueba");
+    }
+
+    @Test
+    void setSiguienteReemplazaElEnlaceAnterior() {
+        ValidadorStock stock = new ValidadorStock(new InventarioConStock());
+        ValidadorDireccion sinCobertura = new ValidadorDireccion(new CoberturaNula());
+        ValidadorCredito credito = new ValidadorCredito();
+
+        stock.setSiguiente(sinCobertura);
+        stock.setSiguiente(credito);
+
+        assertTrue(new ProcesadorPedidos(stock).procesar(pedidoBase()).isAprobado(),
+                "El eslabon reemplazado ya no debe participar en la cadena");
+    }
+
+    // -----------------------------------------------------------------------
+    // Escenario 15: validaciones del armado del pedido
+    // -----------------------------------------------------------------------
+
+    @Test
+    void pedidoSinProductosNoSePuedeConstruir() {
+        assertThrows(IllegalStateException.class, () -> new Pedido.Builder().build());
+    }
+
+    @Test
+    void pedidoSinTotalNoSePuedeConstruir() {
+        assertThrows(IllegalStateException.class, () -> new Pedido.Builder()
+                .productos(List.of(new LineaPedido("TECH-001", 1)))
+                .total(null)
+                .build());
+    }
+
+    @Test
+    void pedidoNoCambiaSiSeModificaLaListaOriginal() {
+        List<LineaPedido> lista = new java.util.ArrayList<>(List.of(new LineaPedido("TECH-001", 1)));
+        Pedido pedido = new Pedido.Builder().productos(lista).build();
+
+        lista.add(new LineaPedido("TECH-002", 1));
+
+        assertEquals(1, pedido.getProductos().size(), "El pedido guarda una copia de los productos");
+    }
+
+    @Test
+    void pedidoConProductoNuloNoSePuedeConstruir() {
+        List<LineaPedido> conNulo = java.util.Arrays.asList(null, new LineaPedido("TECH-001", 1));
+
+        assertThrows(IllegalStateException.class,
+                () -> new Pedido.Builder().productos(conNulo).build());
+    }
+
+    @Test
+    void pedidoConTotalONegativoNoSePuedeConstruir() {
+        List<LineaPedido> productos = List.of(new LineaPedido("TECH-001", 1));
+
+        assertThrows(IllegalStateException.class, () -> new Pedido.Builder()
+                .productos(productos).total(new BigDecimal("-1")).build());
+    }
+
+    @Test
+    void pedidoConCupoNegativoNoSePuedeConstruir() {
+        List<LineaPedido> productos = List.of(new LineaPedido("TECH-001", 1));
+
+        assertThrows(IllegalStateException.class, () -> new Pedido.Builder()
+                .productos(productos).cupoDisponible(new BigDecimal("-1")).build());
+    }
+
+    // -----------------------------------------------------------------------
+    // Escenario 16: entradas nulas
+    // -----------------------------------------------------------------------
+
+    @Test
+    void procesadorSinPrimerValidadorNoSePuedeConstruir() {
+        assertThrows(IllegalArgumentException.class, () -> new ProcesadorPedidos(null));
+    }
+
+    @Test
+    void procesarUnPedidoNuloLanzaUnErrorClaro() {
+        ProcesadorPedidos p = new ProcesadorPedidos(new ValidadorStock(new InventarioConStock()));
+
+        assertThrows(IllegalArgumentException.class, () -> p.procesar(null));
+    }
+
+    @Test
+    void setSiguienteRechazaNulo() {
+        ValidadorStock stock = new ValidadorStock(new InventarioConStock());
+
+        assertThrows(IllegalArgumentException.class, () -> stock.setSiguiente(null),
+                "Devolver null rompia el encadenamiento fluido con un NPE");
     }
 }

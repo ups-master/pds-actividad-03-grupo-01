@@ -2,12 +2,14 @@ package ec.edu.ups.pds.mediator;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Demuestra el patron Mediator en la cocina de El Fogon Andino.
  *
  * Tres escenarios cubren los flujos del diagrama de secuencia:
- *   1. Pedido normal: todos los platos se preparan y la mesa queda servida.
+ *   1. Pedido normal: cada plato llega a su estacion, la mesa se sirve y la caja
+ *      cobra lo servido cuando el mesero pide la cuenta.
  *   2. Faltante de insumo (fritada): JefeDeCocina retira el plato, avisa al
  *      mesero y a caja, y evalua si los platos restantes ya permiten servir.
  *   3. Faltante con platos aun pendientes: el faltante no dispara MESA_LISTA
@@ -22,8 +24,10 @@ public class Main {
         JefeDeCocina jefe = new JefeDeCocina();
 
         Mesero           mesero   = new Mesero("Carlos", jefe);
-        EstacionCaliente caliente = new EstacionCaliente(jefe);
-        EstacionFria     fria     = new EstacionFria(jefe);
+        EstacionCaliente caliente = new EstacionCaliente(jefe,
+                Set.of("fritada", "lomo saltado", "caldo", "seco de pollo"));
+        EstacionFria     fria     = new EstacionFria(jefe,
+                Set.of("ceviche", "ensalada", "limonada"));
         Caja             caja     = new Caja(jefe);
 
         jefe.registrar(mesero);
@@ -31,7 +35,7 @@ public class Main {
         jefe.registrar(fria);
         jefe.registrar(caja);
 
-        separador("ESCENARIO 1 — Pedido normal (mesa 3)");
+        separador("ESCENARIO 1 - Pedido normal (mesa 3)");
         System.out.println("Platos pedidos: ceviche (estacion fria) + lomo saltado (estacion caliente)");
         System.out.println();
 
@@ -46,8 +50,12 @@ public class Main {
         System.out.println(">> La estacion caliente termina el lomo saltado:");
         caliente.prepararPlato("3", "lomo saltado");
         imprimirEstado(jefe, "3");
+        System.out.println();
 
-        separador("ESCENARIO 2 — Faltante de insumo: fritada (mesa 7) [diagrama de secuencia UML]");
+        System.out.println(">> El mesero pide la cuenta:");
+        mesero.solicitarCuenta("3");
+
+        separador("ESCENARIO 2 - Faltante de insumo: fritada (mesa 7) [diagrama de secuencia UML]");
         System.out.println("Platos pedidos: fritada (estacion caliente) + ensalada (estacion fria)");
         System.out.println();
 
@@ -62,8 +70,12 @@ public class Main {
         System.out.println(">> La estacion caliente reporta faltante de fritada:");
         caliente.reportarFaltante("7", "fritada");
         imprimirEstado(jefe, "7");
+        System.out.println();
 
-        separador("ESCENARIO 3 — Faltante con platos aun pendientes (mesa 12)");
+        System.out.println(">> El mesero pide la cuenta (la fritada no se cobra):");
+        mesero.solicitarCuenta("7");
+
+        separador("ESCENARIO 3 - Faltante con platos aun pendientes (mesa 12)");
         System.out.println("Platos pedidos: seco de pollo + limonada + fritada");
         System.out.println("La fritada falta pero el seco de pollo sigue pendiente: mesa NO queda lista aun.");
         System.out.println();

@@ -15,6 +15,11 @@ public class Mesero extends ComponenteCocina {
         informar(EventoCocina.pedidoRegistrado(pedido));
     }
 
+    public void solicitarCuenta(String mesaId) {
+        System.out.println("[" + nombre + "] Solicitando la cuenta de mesa " + mesaId);
+        informar(EventoCocina.cuentaSolicitada(mesaId));
+    }
+
     @Override
     public void recibir(EventoCocina evento) {
         switch (evento.getTipo()) {

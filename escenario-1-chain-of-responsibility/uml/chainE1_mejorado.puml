@@ -1,65 +1,88 @@
 @startuml
 title Andes Market - cadena de validacion de pedidos (mejorada)
 skinparam classAttributeIconSize 0
-abstract class ValidadorPedido <<Handler>> {
-  - siguiente : ValidadorPedido
-  + setSiguiente(siguiente : ValidadorPedido) : ValidadorPedido
-  + validar(pedido : Pedido) : ResultadoValidacion
-  # validarPropio(pedido : Pedido) : ResultadoValidacion
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor #F5F5F5
+  BorderColor #555555
+  BackgroundColor<<Handler>> #BBDEFB
+  BackgroundColor<<ConcreteHandler>> #DCEDC8
+  BackgroundColor<<Client>> #FFE0B2
+  BackgroundColor<<Solicitud>> #F8BBD0
 }
-class ValidadorStock <<ConcreteHandler>> {
-  - inventario : Inventario
-  # validarPropio(pedido : Pedido) : ResultadoValidacion
+legend right
+  |= Color |= Participante GoF |
+  |<#BBDEFB>| Handler |
+  |<#DCEDC8>| ConcreteHandler |
+  |<#FFE0B2>| Client |
+  |<#F8BBD0>| Solicitud |
+  |<#F5F5F5>| No es rol GoF |
+endlegend
+package "Roles del patrón (GoF)" {
+  class ProcesadorPedidos <<Client>> {
+    - primerValidador : ValidadorPedido
+    + procesar(pedido : Pedido) : ResultadoValidacion
+  }
+  abstract class ValidadorPedido <<Handler>> {
+    - siguiente : ValidadorPedido
+    + setSiguiente(siguiente : ValidadorPedido) : ValidadorPedido
+    + validar(pedido : Pedido) : ResultadoValidacion
+    # validarPropio(pedido : Pedido) : ResultadoValidacion
+  }
+  class ValidadorStock <<ConcreteHandler>> {
+    - inventario : Inventario
+    # validarPropio(pedido : Pedido) : ResultadoValidacion
+  }
+  class ValidadorAntifraude <<ConcreteHandler>> {
+    - antifraude : ServicioAntifraude
+    # validarPropio(pedido : Pedido) : ResultadoValidacion
+  }
+  class ValidadorCredito <<ConcreteHandler>> {
+    # validarPropio(pedido : Pedido) : ResultadoValidacion
+  }
+  class ValidadorDireccion <<ConcreteHandler>> {
+    - cobertura : CoberturaEntrega
+    # validarPropio(pedido : Pedido) : ResultadoValidacion
+  }
+  class ValidadorCupon <<ConcreteHandler>> {
+    - cupones : ServicioCupones
+    # validarPropio(pedido : Pedido) : ResultadoValidacion
+  }
+  class Pedido <<Solicitud>> {
+    + productos : List<LineaPedido>
+    + total : BigDecimal
+    + pagaConCredito : boolean
+    + clienteCorporativo : boolean
+    + cupoDisponible : BigDecimal
+    + direccion : String
+    + cupon : String
+  }
 }
-class ValidadorAntifraude <<ConcreteHandler>> {
-  - antifraude : ServicioAntifraude
-  # validarPropio(pedido : Pedido) : ResultadoValidacion
+package "Datos de la solicitud y del resultado (no son roles GoF)" {
+  class LineaPedido {
+    + productoId : String
+    + cantidad : int
+  }
+  class ResultadoValidacion {
+    + aprobado : boolean
+    + motivo : String
+    + aprobado() : ResultadoValidacion
+    + rechazado(motivo : String) : ResultadoValidacion
+  }
 }
-class ValidadorCredito <<ConcreteHandler>> {
-  # validarPropio(pedido : Pedido) : ResultadoValidacion
-}
-class ValidadorDireccion <<ConcreteHandler>> {
-  - cobertura : CoberturaEntrega
-  # validarPropio(pedido : Pedido) : ResultadoValidacion
-}
-class ValidadorCupon <<ConcreteHandler>> {
-  - cupones : ServicioCupones
-  # validarPropio(pedido : Pedido) : ResultadoValidacion
-}
-class Pedido <<Solicitud>> {
-  + productos : List<LineaPedido>
-  + total : BigDecimal
-  + pagaConCredito : boolean
-  + clienteCorporativo : boolean
-  + cupoDisponible : BigDecimal
-  + direccion : String
-  + cupon : String
-}
-class LineaPedido {
-  + productoId : String
-  + cantidad : int
-}
-class ResultadoValidacion {
-  + aprobado : boolean
-  + motivo : String
-  + aprobado() : ResultadoValidacion
-  + rechazado(motivo : String) : ResultadoValidacion
-}
-class ProcesadorPedidos <<Client>> {
-  - primerValidador : ValidadorPedido
-  + procesar(pedido : Pedido) : ResultadoValidacion
-}
-interface Inventario {
-  + hayStock(pedido : Pedido) : boolean
-}
-interface ServicioAntifraude {
-  + esSospechoso(pedido : Pedido) : boolean
-}
-interface CoberturaEntrega {
-  + atiende(direccion : String) : boolean
-}
-interface ServicioCupones {
-  + esValido(pedido : Pedido) : boolean
+package "Dependencias de las reglas (no son roles GoF)" {
+  interface Inventario {
+    + hayStock(pedido : Pedido) : boolean
+  }
+  interface ServicioAntifraude {
+    + esSospechoso(pedido : Pedido) : boolean
+  }
+  interface CoberturaEntrega {
+    + atiende(direccion : String) : boolean
+  }
+  interface ServicioCupones {
+    + esValido(pedido : Pedido) : boolean
+  }
 }
 ValidadorPedido <|-- ValidadorStock
 ValidadorPedido <|-- ValidadorAntifraude
@@ -75,17 +98,21 @@ ValidadorCupon --> "1" ServicioCupones
 ValidadorPedido ..> Pedido : valida
 Pedido "1" *--> "1..*" LineaPedido : productos
 ValidadorPedido ..> ResultadoValidacion : devuelve
+note left of ProcesadorPedidos
+  Conoce solo el primer eslabon. Cadena de ejemplo:
+  stock -> antifraude -> credito -> direccion -> cupon
+end note
 note right of ValidadorPedido
-  validar detiene ante rechazo y delega ante aprobacion.
-  Sin siguiente, devuelve aprobado.
+  validar: un rechazo detiene la cadena,
+  una aprobacion delega y sin siguiente aprueba.
   setSiguiente rechaza ciclos y autoenlaces.
 end note
-note right of ValidadorAntifraude
-  Si el cliente es corporativo, omite
-  la consulta antifraude y continua.
+note bottom of ValidadorAntifraude
+  Cliente corporativo: omite la consulta
+  antifraude y continua.
 end note
 note bottom of ValidadorCupon
-  Eslabon opcional: se inserta sin cambiar
-  los validadores existentes.
+  Eslabon opcional: se inserta sin
+  cambiar los demas validadores.
 end note
 @enduml

@@ -1,9 +1,14 @@
 package ec.edu.ups.pds.mediator;
 
+import java.util.Set;
+
 public class EstacionFria extends ComponenteCocina {
 
-    public EstacionFria(MediadorCocina mediador) {
+    private final Set<String> menu;
+
+    public EstacionFria(MediadorCocina mediador, Set<String> menu) {
         super(mediador);
+        this.menu = Set.copyOf(menu);
     }
 
     public void prepararPlato(String mesaId, String plato) {
@@ -22,5 +27,10 @@ public class EstacionFria extends ComponenteCocina {
     @Override
     public boolean atiende(TipoEvento tipo) {
         return tipo == TipoEvento.PEDIDO_REGISTRADO;
+    }
+
+    @Override
+    public boolean prepara(String plato) {
+        return menu.contains(plato);
     }
 }

@@ -1,9 +1,14 @@
 package ec.edu.ups.pds.mediator;
 
+import java.util.Set;
+
 public class EstacionCaliente extends ComponenteCocina {
 
-    public EstacionCaliente(MediadorCocina mediador) {
+    private final Set<String> menu;
+
+    public EstacionCaliente(MediadorCocina mediador, Set<String> menu) {
         super(mediador);
+        this.menu = Set.copyOf(menu);
     }
 
     public void reportarFaltante(String mesaId, String plato) {
@@ -27,5 +32,10 @@ public class EstacionCaliente extends ComponenteCocina {
     @Override
     public boolean atiende(TipoEvento tipo) {
         return tipo == TipoEvento.PEDIDO_REGISTRADO;
+    }
+
+    @Override
+    public boolean prepara(String plato) {
+        return menu.contains(plato);
     }
 }

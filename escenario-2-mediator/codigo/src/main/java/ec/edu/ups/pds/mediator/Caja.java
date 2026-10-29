@@ -1,6 +1,12 @@
 package ec.edu.ups.pds.mediator;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class Caja extends ComponenteCocina {
+
+    private final Map<String, Map<String, Integer>> cuentas = new HashMap<>();
 
     public Caja(MediadorCocina mediador) {
         super(mediador);
@@ -14,15 +20,21 @@ public class Caja extends ComponenteCocina {
                         + " de la cuenta de mesa " + evento.getMesaId());
                 break;
             case CUENTA_SOLICITADA:
-                emitirCuenta(evento.getMesaId());
+                emitirCuenta(evento.getMesaId(), evento.getConsumo());
                 break;
             default:
                 break;
         }
     }
 
-    public void emitirCuenta(String mesaId) {
-        System.out.println("[Caja] Cuenta emitida para mesa " + mesaId);
+    /** Emite la cuenta con exactamente lo que se sirvio en la mesa. */
+    public void emitirCuenta(String mesaId, Map<String, Integer> consumo) {
+        cuentas.put(mesaId, new LinkedHashMap<>(consumo));
+        System.out.println("[Caja] Cuenta emitida para mesa " + mesaId + ": " + consumo);
+    }
+
+    public Map<String, Integer> obtenerCuenta(String mesaId) {
+        return cuentas.get(mesaId);
     }
 
     @Override

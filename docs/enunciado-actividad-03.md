@@ -2,8 +2,17 @@
 
 ## Datos de la actividad
 
-> **POR COMPLETAR:** fecha de entrega, resultado de aprendizaje (RA3) y entregables (nombre del PDF
-> `PDS_Actividad_03_Grupo01.pdf`).
+| | |
+|---|---|
+| **Asignatura** | Patrones de Diseño de Software |
+| **Actividad de aprendizaje #** | 03 - Patrones de comportamiento |
+| **Docente** | Mauricio Ortiz Ochoa |
+| **Fecha** | 2026/10/29 |
+| **Grupo base** | Grupo 01 |
+| **Resultado de aprendizaje** | RA3. Implementa soluciones aplicando patrones de comportamiento para organizar responsabilidades e interacciones entre objetos. |
+
+**Entregables:** archivo PDF `PDS_Actividad_03_Grupo01.pdf`; aplicación de software almacenada en un
+repositorio de código. Aunque la actividad se realiza en grupo, la carga al AVAC es individual.
 
 ## Escenario 1 (Chain of Responsibility): validación de pedidos en una tienda en línea
 
@@ -84,9 +93,9 @@ conjunto de reglas debe poder cambiarse.
 | Rol del patrón | Elemento del escenario |
 |---|---|
 | Solicitud | `Pedido` |
-| Manejador | `ValidadorPedido`: clase abstracta que guarda su `siguiente` y decide si continúa |
-| Manejadores concretos | `ValidadorStock`, `ValidadorAntifraude`, `ValidadorCredito`, `ValidadorDireccion` y, como extensión, `ValidadorCupon` |
-| Cliente | `ProcesadorPedidos`: arma la cadena y envía el pedido solo al primer eslabón |
+| Manejador (Handler) | `ValidadorPedido`: clase abstracta que guarda su `siguiente` y decide si continúa |
+| Manejadores concretos (ConcreteHandler) | `ValidadorStock`, `ValidadorAntifraude`, `ValidadorCredito`, `ValidadorDireccion` y, como extensión, `ValidadorCupon` |
+| Cliente (Client) | `ProcesadorPedidos`: recibe solo el primer eslabón (la cadena la arma quien configura) y le envía el pedido |
 
 **Cómo resuelve los problemas identificados:** el procesador conoce solo el primer eslabón y cada
 validador solo a su `siguiente`; agregar cupones es crear `ValidadorCupon` e insertarlo, sin modificar las
@@ -191,9 +200,10 @@ reparte los pedidos a las estaciones y decide cuándo una mesa está lista para 
 
 | Rol del patrón | Elemento del escenario |
 |---|---|
-| Componentes | `Mesero`, `EstacionCaliente`, `EstacionFria` y `Caja`: cada uno guarda su referencia `mediador` y le notifica sus eventos |
-| Mediador | `MediadorCocina`: interfaz con la operación `notificar(emisor, evento)` |
-| Mediador concreto | `JefeDeCocina`: conoce a todos los componentes, lleva el estado de cada mesa y aplica las reglas de coordinación |
+| Componentes (Colleague y ConcreteColleague) | `ComponenteCocina` y sus subclases `Mesero`, `EstacionCaliente`, `EstacionFria` y `Caja`: cada uno guarda su referencia `mediador` y le notifica sus eventos |
+| Mediador (Mediator) | `MediadorCocina`: interfaz con las operaciones `registrar(componente)` y `notificar(emisor, evento)` |
+| Mediador concreto (ConcreteMediator) | `JefeDeCocina`: conoce a todos los componentes, lleva el estado de cada mesa y aplica las reglas de coordinación |
+| Cliente (Client) | `Main`: arma el mediador y registra los componentes |
 
 **Cómo resuelve los problemas identificados:** cada componente conoce solo al mediador; la regla "servir cuando
 todas las estaciones terminaron" vive una sola vez en `JefeDeCocina`; un faltante es un único aviso al
@@ -203,11 +213,69 @@ con un mediador simulado.
 
 **Análisis crítico.** Se descartó *Observer* porque dejaría la regla de coordinación repartida entre los
 suscriptores, y *Facade* porque su comunicación es en un solo sentido, mientras que aquí los componentes la
-inician. Como costo, el mediador concentra la coordinación y conoce a cada componente concreto, por lo que
-puede crecer demasiado; para evitarlo, `JefeDeCocina` solo coordina y cada componente sigue haciendo su
+inician. Como costo, el mediador concentra la coordinación y conoce a todos los componentes registrados (solo
+por su abstracción), por lo que puede crecer demasiado; para evitarlo, `JefeDeCocina` solo coordina y cada componente sigue haciendo su
 propio trabajo. Además, debe manejar la reentrada: un componente puede responder a un aviso mientras el
 mediador aún reparte el anterior.
 
 ## Plantilla original de la actividad
 
-> **POR COMPLETAR:** plantilla de entrega (secciones del informe, rúbrica y formato del uso crítico de IA).
+Transcrita de la plantilla oficial `PDS_Actividad_03_GrupoXX.docx` (Maestría en Software, asignatura Patrones
+de Diseño de Software, docente Mauricio Ortiz Ochoa).
+
+### Tareas específicas
+
+- Participar en las clases de la Unidad 03, secciones 01 y 02.
+- Leer detenidamente el material de apoyo relacionado con los patrones de comportamiento.
+- Crear un repositorio de código para almacenar la aplicación solicitada.
+- Analizar los escenarios seleccionados e identificar el problema de comportamiento que debe resolverse.
+- Seleccionar y justificar los patrones de diseño correspondientes.
+- Elaborar los diagramas de clases UML de las soluciones propuestas.
+- Implementar las soluciones manteniendo correspondencia entre el modelo UML y el código.
+- Utilizar inteligencia artificial como apoyo para revisar, cuestionar y mejorar las decisiones de diseño.
+- Documentar al menos una recomendación de la IA que haya sido aceptada, modificada o rechazada,
+  justificando la decisión tomada.
+
+### Instrucciones
+
+Cada grupo selecciona **2 patrones de comportamiento** entre Chain of Responsibility, Mediator, Command,
+Interpreter, Iterator, Memento y Visitor. No deben ser los patrones desarrollados directamente en clase.
+
+1. **Definición del problema.** Para cada patrón: plantear un escenario realista, describir el contexto,
+   identificar las responsabilidades e interacciones que generan el problema de diseño y explicar por qué una
+   solución directa (condicionales, dependencias o llamadas explícitas) dificulta la evolución del sistema.
+2. **Selección y justificación.** Justificar por qué el patrón es adecuado, identificar sus participantes en el
+   dominio, explicar la responsabilidad de cada uno y describir cómo colaboran los objetos.
+3. **Modelado UML.** Un diagrama de clases por solución con clases e interfaces, atributos y operaciones
+   relevantes, relaciones, navegabilidad cuando corresponda, multiplicidades cuando aporten información y los
+   participantes del patrón claramente identificados.
+4. **Implementación.** En un lenguaje orientado a objetos, con correspondencia con los diagramas UML, que
+   evidencie el patrón, evite dependencias innecesarias y mantenga responsabilidades coherentes.
+5. **Validación de la solución.** Para cada patrón explicar qué problema resolvió, qué mejoró respecto de una
+   solución directa, qué costos o complejidad adicional introdujo y en qué situación no se recomendaría.
+6. **Uso crítico de inteligencia artificial.** La IA puede apoyar el análisis del escenario, el cuestionamiento
+   de decisiones, la revisión del UML, la generación o revisión de código y la propuesta de pruebas o
+   alternativas. Se documenta, como mínimo, una recomendación aceptada, modificada o rechazada con su decisión.
+
+### Estructura del informe (por patrón)
+
+Escenario / Motivación · Problema de diseño identificado · Justificación del patrón (con alternativas
+consideradas) · Participantes del patrón (participante → elemento del dominio) · Diagrama de clases UML ·
+Código fuente (repositorio / enlace) · Uso crítico de IA (prompt principal, recomendación aceptada y
+justificación, recomendación modificada o rechazada y justificación). Al final, **Conclusiones (200 palabras)**.
+
+### Rúbrica de evaluación
+
+Cada criterio se califica como No presenta (0), Nivel bajo (2), Nivel medio (4) o Nivel alto (6).
+
+| Criterio | 0 | 2 | 4 | 6 |
+|---|---|---|---|---|
+| Selección, justificación y diagrama UML del Patrón 01 | 0 | 2 | 4 | 6 |
+| Implementación funcional y correspondencia UML-código del Patrón 01 | 0 | 2 | 4 | 6 |
+| Selección, justificación y diagrama UML del Patrón 02 | 0 | 2 | 4 | 6 |
+| Implementación funcional y correspondencia UML-código del Patrón 02 | 0 | 2 | 4 | 6 |
+| Uso crítico de IA, síntesis comparativa, justificación y conclusiones | 0 | 2 | 4 | 6 |
+
+### Documentos relacionados
+
+`Unidad_03_01_PDS.pdf` y `Unidad_03_02_PDS.pdf`.

@@ -6,9 +6,13 @@ public abstract class ValidadorPedido {
 
     /**
      * Encadena el siguiente validador y lo devuelve para permitir encadenamiento fluido.
-     * Rechaza autoenlaces y ciclos para evitar bucles infinitos.
+     * Rechaza null, autoenlaces y ciclos para evitar NPE y bucles infinitos. Una cadena termina
+     * simplemente al no enlazar mas; una cola ya armada puede compartirse entre cadenas.
      */
     public ValidadorPedido setSiguiente(ValidadorPedido siguiente) {
+        if (siguiente == null) {
+            throw new IllegalArgumentException("El siguiente validador no puede ser nulo");
+        }
         if (siguiente == this) {
             throw new IllegalArgumentException("Un validador no puede ser su propio siguiente");
         }

@@ -8,3 +8,7 @@ target/
 .idea/
 *.iml
 .vscode/
+
+# Documentos de la entrega (PDF de actividades previas y plantilla Word)
+docs/*.pdf
+docs/*.docx
