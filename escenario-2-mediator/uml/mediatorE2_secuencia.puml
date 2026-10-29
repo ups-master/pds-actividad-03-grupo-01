@@ -1,5 +1,5 @@
 @startuml
-title El Fogon Andino - faltante de insumo y mesa lista
+title El Fogon Andino - faltante de insumo, mesa lista y cuenta
 participant "caliente : EstacionCaliente" as caliente
 participant "jefe : JefeDeCocina" as jefe
 participant "estado : EstadoMesa" as estado
@@ -22,4 +22,12 @@ jefe -> estado : marcarServidos()
 jefe --> mesero : confirmacion
 deactivate jefe
 note over fria : No espera la fritada retirada; conserva sus platos listos.
+mesero -> jefe : notificar(CUENTA_SOLICITADA, mesa 7)
+activate jefe
+jefe -> estado : getServidos()
+estado --> jefe : {ensalada: 1}
+jefe -> caja : recibir(CUENTA_SOLICITADA, consumo = {ensalada: 1})
+caja --> jefe : cuenta emitida
+deactivate jefe
+note over caja : La fritada retirada no se cobra.
 @enduml

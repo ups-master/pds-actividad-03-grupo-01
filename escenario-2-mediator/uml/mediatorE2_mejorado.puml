@@ -1,69 +1,108 @@
 @startuml
 title El Fogon Andino - mediador de cocina (diseno mejorado)
 skinparam classAttributeIconSize 0
-interface MediadorCocina <<Mediator>> {
-  + registrar(componente : ComponenteCocina) : void
-  + notificar(emisor : ComponenteCocina, evento : EventoCocina) : void
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor #F5F5F5
+  BorderColor #555555
+  BackgroundColor<<Mediator>> #BBDEFB
+  BackgroundColor<<ConcreteMediator>> #90CAF9
+  BackgroundColor<<Colleague>> #DCEDC8
+  BackgroundColor<<ConcreteColleague>> #C5E1A5
+  BackgroundColor<<Client>> #FFE0B2
 }
-class JefeDeCocina <<ConcreteMediator>> {
-  - componentes : List<ComponenteCocina>
-  - estados : Map<String, EstadoMesa>
-  + registrar(componente : ComponenteCocina) : void
-  + notificar(emisor : ComponenteCocina, evento : EventoCocina) : void
-  - despachar(evento : EventoCocina) : void
-  - mesaLista(mesaId : String) : boolean
+legend right
+  |= Color |= Participante GoF |
+  |<#BBDEFB>| Mediator |
+  |<#90CAF9>| ConcreteMediator |
+  |<#DCEDC8>| Colleague |
+  |<#C5E1A5>| ConcreteColleague |
+  |<#FFE0B2>| Client |
+  |<#F5F5F5>| No es rol GoF |
+endlegend
+package "Roles del patrón (GoF)" {
+  class Main <<Client>>
+  interface MediadorCocina <<Mediator>> {
+    + registrar(componente : ComponenteCocina) : void
+    + notificar(emisor : ComponenteCocina, evento : EventoCocina) : void
+  }
+  class JefeDeCocina <<ConcreteMediator>> {
+    - componentes : List<ComponenteCocina>
+    - estados : Map<String, EstadoMesa>
+    + registrar(componente : ComponenteCocina) : void
+    + notificar(emisor : ComponenteCocina, evento : EventoCocina) : void
+    + obtenerEstado(mesaId : String) : EstadoMesa
+    - validarPlatos(pedido : PedidoMesa) : void
+    - repartirPedido(pedido : PedidoMesa) : void
+    - despachar(evento : EventoCocina) : void
+    - mesaLista(mesaId : String) : boolean
+  }
+  abstract class ComponenteCocina <<Colleague>> {
+    # mediador : MediadorCocina
+    + informar(evento : EventoCocina) : void
+    + recibir(evento : EventoCocina) : void
+    + atiende(tipo : TipoEvento) : boolean
+    + prepara(plato : String) : boolean
+  }
+  class Mesero <<ConcreteColleague>> {
+    - nombre : String
+    + registrarPedido(pedido : PedidoMesa) : void
+    + solicitarCuenta(mesaId : String) : void
+    + recibir(evento : EventoCocina) : void
+  }
+  class EstacionCaliente <<ConcreteColleague>> {
+    - menu : Set<String>
+    + reportarFaltante(mesaId : String, plato : String) : void
+    + prepararPlato(mesaId : String, plato : String) : void
+    + recibir(evento : EventoCocina) : void
+  }
+  class EstacionFria <<ConcreteColleague>> {
+    - menu : Set<String>
+    + prepararPlato(mesaId : String, plato : String) : void
+    + recibir(evento : EventoCocina) : void
+  }
+  class Caja <<ConcreteColleague>> {
+    - cuentas : Map<String, Map<String, Integer>>
+    + recibir(evento : EventoCocina) : void
+    + emitirCuenta(mesaId : String, consumo : Map<String, Integer>) : void
+    + obtenerCuenta(mesaId : String) : Map<String, Integer>
+  }
 }
-abstract class ComponenteCocina <<Colleague>> {
-  # mediador : MediadorCocina
-  + informar(evento : EventoCocina) : void
-  + recibir(evento : EventoCocina) : void
-  + atiende(tipo : TipoEvento) : boolean
+package "Datos de colaboración (no son roles GoF)" {
+  class EventoCocina {
+    + tipo : TipoEvento
+    + mesaId : String
+    + plato : String
+    + pedido : PedidoMesa
+    + consumo : Map<String, Integer>
+  }
+  enum TipoEvento {
+    PEDIDO_REGISTRADO
+    PLATO_LISTO
+    PLATOS_SERVIDOS
+    INSUMO_AGOTADO
+    MESA_LISTA
+    RETIRAR_PLATO
+    CUENTA_SOLICITADA
+  }
+  class PedidoMesa {
+    + mesaId : String
+    + platos : List<String>
+  }
+  class EstadoMesa {
+    - pendientes : Map<String, Integer>
+    - listos : Map<String, Integer>
+    - servidos : Map<String, Integer>
+    - retirados : Map<String, Integer>
+    - servida : boolean
+    + agregarPlatos(platos : List<String>) : void
+    + marcarListo(plato : String) : boolean
+    + marcarServidos() : void
+    + retirar(plato : String) : boolean
+    + estaLista() : boolean
+    + estaServida() : boolean
+  }
 }
-class Mesero <<ConcreteColleague>> {
-  + registrarPedido(pedido : PedidoMesa) : void
-  + recibir(evento : EventoCocina) : void
-}
-class EstacionCaliente <<ConcreteColleague>> {
-  + reportarFaltante(mesaId : String, plato : String) : void
-  + recibir(evento : EventoCocina) : void
-}
-class EstacionFria <<ConcreteColleague>> {
-  + recibir(evento : EventoCocina) : void
-}
-class Caja <<ConcreteColleague>> {
-  + recibir(evento : EventoCocina) : void
-  + emitirCuenta(mesaId : String) : void
-}
-class PedidoMesa {
-  + mesaId : String
-  + platos : List<String>
-}
-class EventoCocina {
-  + tipo : TipoEvento
-  + mesaId : String
-  + plato : String
-  + pedido : PedidoMesa
-}
-enum TipoEvento {
-  PEDIDO_REGISTRADO
-  PLATO_LISTO
-  PLATOS_SERVIDOS
-  INSUMO_AGOTADO
-  MESA_LISTA
-  RETIRAR_PLATO
-  CUENTA_SOLICITADA
-}
-class EstadoMesa {
-  - pendientes : Map<String, Integer>
-  - listos : Map<String, Integer>
-  - servidos : Map<String, Integer>
-  - retirados : Map<String, Integer>
-  + marcarListo(plato : String) : void
-  + marcarServidos() : void
-  + retirar(plato : String) : void
-  + estaLista() : boolean
-}
-class Main <<Client>>
 MediadorCocina <|.. JefeDeCocina
 ComponenteCocina <|-- Mesero
 ComponenteCocina <|-- EstacionCaliente
@@ -77,14 +116,18 @@ EventoCocina --> TipoEvento : tipo
 EventoCocina --> "0..1" PedidoMesa : pedido
 Mesero ..> PedidoMesa : registra
 Main ..> JefeDeCocina : configura
+note right of ComponenteCocina
+  Los colegas conocen solo al mediador:
+  ninguno referencia a otro colega.
+end note
 note right of JefeDeCocina
-  Reparte eventos a componentes registrados segun atiende().
-  Itera una copia de la lista para permitir reentrada.
-  Un faltante retira el plato, avisa a mesero y caja,
+  Reparte cada pedido por prepara(plato) y los eventos por
+  atiende(tipo), sobre una copia de la lista (reentrada).
+  Un faltante retira el plato, avisa a mesero y caja
   y recalcula si la mesa ya puede servirse.
 end note
 note bottom of EstadoMesa
-  Mesa lista: ningun plato pendiente; los retirados
-  no cuentan como pendientes ni como servidos.
+  Mesa lista: sin pendientes, algo listo y aun no servida.
+  La cuenta de Caja contiene solo lo servido.
 end note
 @enduml

@@ -1,17 +1,28 @@
 package ec.edu.ups.pds.mediator;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class EventoCocina {
 
     private TipoEvento tipo;
     private String mesaId;
     private String plato;
     private PedidoMesa pedido;
+    private Map<String, Integer> consumo;
 
     public EventoCocina(TipoEvento tipo, String mesaId, String plato, PedidoMesa pedido) {
-        this.tipo   = tipo;
-        this.mesaId = mesaId;
-        this.plato  = plato;
-        this.pedido = pedido;
+        this(tipo, mesaId, plato, pedido, Map.of());
+    }
+
+    public EventoCocina(TipoEvento tipo, String mesaId, String plato, PedidoMesa pedido,
+                        Map<String, Integer> consumo) {
+        this.tipo    = tipo;
+        this.mesaId  = mesaId;
+        this.plato   = plato;
+        this.pedido  = pedido;
+        this.consumo = Collections.unmodifiableMap(new LinkedHashMap<>(consumo));
     }
 
     public static EventoCocina pedidoRegistrado(PedidoMesa pedido) {
@@ -30,6 +41,18 @@ public class EventoCocina {
         return new EventoCocina(TipoEvento.PLATOS_SERVIDOS, mesaId, null, null);
     }
 
+    public static EventoCocina cuentaSolicitada(String mesaId) {
+        return new EventoCocina(TipoEvento.CUENTA_SOLICITADA, mesaId, null, null);
+    }
+
+    public static EventoCocina mesaLista(String mesaId) {
+        return new EventoCocina(TipoEvento.MESA_LISTA, mesaId, null, null);
+    }
+
+    public static EventoCocina retirarPlato(String mesaId, String plato) {
+        return new EventoCocina(TipoEvento.RETIRAR_PLATO, mesaId, plato, null);
+    }
+
     public TipoEvento getTipo() {
         return tipo;
     }
@@ -46,11 +69,7 @@ public class EventoCocina {
         return pedido;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("[").append(tipo).append("|mesa=").append(mesaId);
-        if (plato  != null) sb.append("|plato=").append(plato);
-        if (pedido != null) sb.append("|pedido=").append(pedido.getMesaId());
-        return sb.append("]").toString();
+    public Map<String, Integer> getConsumo() {
+        return consumo;
     }
 }

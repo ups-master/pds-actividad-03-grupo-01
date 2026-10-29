@@ -10,30 +10,41 @@ public class EstadoMesa {
     private Map<String, Integer> listos     = new HashMap<>();
     private Map<String, Integer> servidos   = new HashMap<>();
     private Map<String, Integer> retirados  = new HashMap<>();
+    private boolean servida;
 
     public EstadoMesa(List<String> platos) {
-        for (String plato : platos) {
-            pendientes.merge(plato, 1, Integer::sum);
-        }
+        sumarPendientes(platos);
     }
 
-    public void marcarListo(String plato) {
-        moverUno(pendientes, listos, plato);
+    /** Suma platos de un pedido posterior de la misma mesa y la vuelve a abrir. */
+    public void agregarPlatos(List<String> platos) {
+        sumarPendientes(platos);
+        servida = false;
+    }
+
+    /** Devuelve false si el plato no estaba pendiente, en cuyo caso no cambia nada. */
+    public boolean marcarListo(String plato) {
+        return moverUno(pendientes, listos, plato);
     }
 
     public void marcarServidos() {
         listos.forEach((plato, cantidad) -> servidos.merge(plato, cantidad, Integer::sum));
         listos.clear();
+        servida = true;
     }
 
-    public void retirar(String plato) {
-        if (!moverUno(pendientes, retirados, plato)) {
-            moverUno(listos, retirados, plato);
-        }
+    /** Devuelve false si el plato no era parte del pedido, en cuyo caso no cambia nada. */
+    public boolean retirar(String plato) {
+        return moverUno(pendientes, retirados, plato) || moverUno(listos, retirados, plato);
     }
 
+    /** Lista para servir: sin pendientes, con algo que servir y sin haberse servido ya. */
     public boolean estaLista() {
-        return pendientes.isEmpty();
+        return !servida && pendientes.isEmpty() && !listos.isEmpty();
+    }
+
+    public boolean estaServida() {
+        return servida;
     }
 
     public Map<String, Integer> getPendientes() {
@@ -50,6 +61,12 @@ public class EstadoMesa {
 
     public Map<String, Integer> getRetirados() {
         return retirados;
+    }
+
+    private void sumarPendientes(List<String> platos) {
+        for (String plato : platos) {
+            pendientes.merge(plato, 1, Integer::sum);
+        }
     }
 
     private boolean moverUno(Map<String, Integer> origen, Map<String, Integer> destino, String plato) {
