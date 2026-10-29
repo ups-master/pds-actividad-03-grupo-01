@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,9 +61,20 @@ class CorrespondenciaUmlCodigoTest {
     @Test
     void pumlDeclara5ValidadoresConcretos() throws IOException {
         String c = Files.readString(PUML);
-        Matcher m = Pattern.compile("^class\\s+Validador\\w+", Pattern.MULTILINE).matcher(c);
+        Matcher m = Pattern.compile("^\\s*class\\s+Validador\\w+\\s+<<ConcreteHandler>>", Pattern.MULTILINE).matcher(c);
         assertEquals(5, m.results().count(),
                 "Se esperan 5 ConcreteHandlers: Stock, Antifraude, Credito, Direccion, Cupon");
+    }
+
+    @Test
+    void pumlEstereotipaLosRolesDelPatron() throws IOException {
+        String c = Files.readString(PUML);
+        assertTrue(Pattern.compile("^\\s*abstract class ValidadorPedido\\s+<<Handler>>", Pattern.MULTILINE).matcher(c).find(),
+                "ValidadorPedido debe tener el estereotipo <<Handler>>");
+        assertTrue(Pattern.compile("^\\s*class ProcesadorPedidos\\s+<<Client>>", Pattern.MULTILINE).matcher(c).find(),
+                "ProcesadorPedidos debe tener el estereotipo <<Client>>");
+        assertTrue(Pattern.compile("^\\s*class Pedido\\s+<<Solicitud>>", Pattern.MULTILINE).matcher(c).find(),
+                "Pedido debe tener el estereotipo <<Solicitud>>");
     }
 
     @Test
@@ -90,6 +102,23 @@ class CorrespondenciaUmlCodigoTest {
                 "Pedido", "LineaPedido", "ResultadoValidacion", "ProcesadorPedidos",
                 "Inventario", "ServicioAntifraude", "CoberturaEntrega", "ServicioCupones"))
             assertDoesNotThrow(() -> cargar(nombre), "Tipo no encontrado en el paquete: " + nombre);
+    }
+
+    /** Toda clase del codigo debe estar en el diagrama; Demo es el arranque y no es parte del diseno. */
+    @Test
+    void todasLasClasesDelCodigoEstanEnElPuml() throws IOException {
+        String puml = Files.readString(PUML);
+        Path fuentes = Paths.get("src/main/java/" + PAQUETE.replace('.', '/'));
+        try (var archivos = Files.list(fuentes)) {
+            List<String> ausentes = archivos
+                    .map(p -> p.getFileName().toString())
+                    .filter(n -> n.endsWith(".java") && !n.equals("package-info.java") && !n.equals("Demo.java"))
+                    .map(n -> n.substring(0, n.length() - ".java".length()))
+                    .filter(n -> !Pattern.compile("^\\s*(abstract class|class|interface|enum)\\s+" + n + "\\b",
+                            Pattern.MULTILINE).matcher(puml).find())
+                    .toList();
+            assertTrue(ausentes.isEmpty(), "Clases del codigo ausentes del PUML: " + ausentes);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -365,6 +394,177 @@ class CorrespondenciaUmlCodigoTest {
     void servicioCupones_esValido_recibePedidoDevuelveBoolean() throws Exception {
         Method m = cargar("ServicioCupones").getMethod("esValido", cargar("Pedido"));
         assertEquals(boolean.class, m.getReturnType());
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Comparacion generica: cada miembro del PUML contra el codigo
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private static final Pattern TIPO = Pattern.compile("^(abstract class|class|interface|enum)\\s+(\\w+)(?:\\s+<<\\w+>>)?\\s*(\\{)?\\s*$");
+    private static final Pattern OPERACION = Pattern.compile("^([+\\-#])\\s*(\\w+)\\((.*)\\)\\s*:\\s*(.+)$");
+    private static final Pattern ATRIBUTO = Pattern.compile("^([+\\-#])\\s*(\\w+)\\s*:\\s*(.+)$");
+
+    /** Miembros declarados en el PUML por tipo, en el orden en que aparecen. */
+    private Map<String, List<String>> miembrosDelPuml() throws IOException {
+        Map<String, List<String>> tipos = new java.util.LinkedHashMap<>();
+        List<String> actual = null;
+        for (String linea : Files.readAllLines(PUML)) {
+            String l = linea.strip();
+            Matcher t = TIPO.matcher(l);
+            if (t.matches()) {
+                actual = t.group(3) != null ? new java.util.ArrayList<>() : null;
+                tipos.put(t.group(2), actual != null ? actual : new java.util.ArrayList<>());
+            } else if (l.equals("}")) {
+                actual = null;
+            } else if (actual != null && !l.isEmpty()) {
+                actual.add(l);
+            }
+        }
+        return tipos;
+    }
+
+    private static String sinGenericos(String tipo) {
+        int i = tipo.indexOf('<');
+        return (i < 0 ? tipo : tipo.substring(0, i)).strip();
+    }
+
+    /** Divide los parametros por comas de primer nivel (ignora las de Map&lt;K, V&gt;). */
+    private static List<String> parametros(String texto) {
+        List<String> res = new java.util.ArrayList<>();
+        if (texto.isBlank()) return res;
+        int nivel = 0, inicio = 0;
+        for (int i = 0; i < texto.length(); i++) {
+            char c = texto.charAt(i);
+            if (c == '<') nivel++;
+            else if (c == '>') nivel--;
+            else if (c == ',' && nivel == 0) {
+                res.add(texto.substring(inicio, i).strip());
+                inicio = i + 1;
+            }
+        }
+        res.add(texto.substring(inicio).strip());
+        return res;
+    }
+
+    private static Method buscar(Class<?> clase, String nombre, List<String> tiposParametros) {
+        for (Method m : clase.getDeclaredMethods()) {
+            if (!m.getName().equals(nombre) || m.getParameterCount() != tiposParametros.size()) continue;
+            boolean coincide = true;
+            for (int i = 0; i < tiposParametros.size(); i++) {
+                coincide &= m.getParameterTypes()[i].getSimpleName().equals(tiposParametros.get(i));
+            }
+            if (coincide) return m;
+        }
+        return null;
+    }
+
+    @Test
+    void cadaMiembroDelPumlExisteEnElCodigoConSuVisibilidadYTipos() throws Exception {
+        for (Map.Entry<String, List<String>> tipo : miembrosDelPuml().entrySet()) {
+            Class<?> clase = cargar(tipo.getKey());
+            for (String miembro : tipo.getValue()) {
+                String donde = tipo.getKey() + ": " + miembro;
+                Matcher op = OPERACION.matcher(miembro);
+                Matcher at = ATRIBUTO.matcher(miembro);
+                if (op.matches()) {
+                    List<String> tipos = new java.util.ArrayList<>();
+                    for (String p : parametros(op.group(3))) {
+                        tipos.add(sinGenericos(p.substring(p.indexOf(':') + 1)));
+                    }
+                    Method m = buscar(clase, op.group(2), tipos);
+                    assertNotNull(m, "Falta la operacion " + donde);
+                    assertEquals(sinGenericos(op.group(4)), m.getReturnType().getSimpleName(),
+                            "Tipo de retorno distinto en " + donde);
+                    assertVisibilidad(op.group(1), m.getModifiers(), donde);
+                } else if (at.matches()) {
+                    Field f = clase.getDeclaredField(at.group(2));
+                    assertEquals(sinGenericos(at.group(3)), f.getType().getSimpleName(),
+                            "Tipo de atributo distinto en " + donde);
+                    if (at.group(1).equals("+")) {
+                        // Convencion del proyecto: UML "+" = campo privado con getter/is publico.
+                        assertTrue(Modifier.isPrivate(f.getModifiers()), donde + " debe ser private con getter");
+                        String sufijo = Character.toUpperCase(f.getName().charAt(0)) + f.getName().substring(1);
+                        boolean hayGetter = false;
+                        for (String prefijo : List.of("get", "is")) {
+                            try {
+                                hayGetter |= Modifier.isPublic(clase.getMethod(prefijo + sufijo).getModifiers());
+                            } catch (NoSuchMethodException ignorada) {
+                                // se prueba el siguiente prefijo
+                            }
+                        }
+                        assertTrue(hayGetter, "Falta el getter publico de " + donde);
+                    } else {
+                        assertVisibilidad(at.group(1), f.getModifiers(), donde);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    void elCodigoNoTieneOperacionesPropiasAusentesDelPuml() throws Exception {
+        Map<String, List<String>> uml = miembrosDelPuml();
+        for (String nombre : uml.keySet()) {
+            Class<?> clase = cargar(nombre);
+            for (Method m : clase.getDeclaredMethods()) {
+                int mod = m.getModifiers();
+                boolean exenta = m.isSynthetic() || Modifier.isPrivate(mod) || Modifier.isStatic(mod)
+                        || (m.getParameterCount() == 0 && m.getName().matches("^(get|is)[A-Z].*"))
+                        || sobrescribe(m);
+                if (exenta) continue;
+                boolean declarada = uml.get(nombre).stream().anyMatch(l -> {
+                    Matcher op = OPERACION.matcher(l);
+                    return op.matches() && op.group(2).equals(m.getName())
+                            && parametros(op.group(3)).size() == m.getParameterCount();
+                });
+                assertTrue(declarada, nombre + "." + m.getName() + " existe en el codigo pero no en el PUML");
+            }
+        }
+    }
+
+    @Test
+    void elCodigoNoTieneAtributosAusentesDelPuml() throws Exception {
+        Map<String, List<String>> uml = miembrosDelPuml();
+        for (String nombre : uml.keySet()) {
+            Class<?> clase = cargar(nombre);
+            for (Field f : clase.getDeclaredFields()) {
+                if (f.isSynthetic() || Modifier.isStatic(f.getModifiers())) continue;
+                boolean declarado = uml.get(nombre).stream().anyMatch(l -> {
+                    Matcher at = ATRIBUTO.matcher(l);
+                    return at.matches() && at.group(2).equals(f.getName());
+                });
+                assertTrue(declarado, nombre + "." + f.getName() + " existe en el codigo pero no en el PUML");
+            }
+        }
+    }
+
+    private static void assertVisibilidad(String simbolo, int modificadores, String donde) {
+        switch (simbolo) {
+            case "-" -> assertTrue(Modifier.isPrivate(modificadores), donde + " debe ser private");
+            case "#" -> assertTrue(Modifier.isProtected(modificadores), donde + " debe ser protected");
+            default  -> assertTrue(Modifier.isPublic(modificadores), donde + " debe ser public");
+        }
+    }
+
+    /** Una operacion que redefine la de un supertipo ya esta documentada en el supertipo. */
+    private static boolean sobrescribe(Method m) {
+        java.util.Deque<Class<?>> pendientes = new java.util.ArrayDeque<>();
+        pendientes.add(m.getDeclaringClass());
+        while (!pendientes.isEmpty()) {
+            Class<?> c = pendientes.poll();
+            if (c != m.getDeclaringClass()) {
+                for (Method otro : c.getDeclaredMethods()) {
+                    if (otro.getName().equals(m.getName())
+                            && java.util.Arrays.equals(otro.getParameterTypes(), m.getParameterTypes())
+                            && !Modifier.isPrivate(otro.getModifiers()) && !Modifier.isStatic(otro.getModifiers())) {
+                        return true;
+                    }
+                }
+            }
+            if (c.getSuperclass() != null) pendientes.add(c.getSuperclass());
+            pendientes.addAll(List.of(c.getInterfaces()));
+        }
+        return false;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
